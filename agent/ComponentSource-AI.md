@@ -36,13 +36,28 @@ sugiere cómo confirmarlo (datasheet, fabricante probable por el prefijo).
 Devuelve una tabla Markdown con EXACTAMENTE estas columnas. Una fila por
 oferta/proveedor encontrado (o filas con `—` si solo hay enlaces):
 
-| Part Number | Mfr | DC | Description | COO | Stock / Qty. | Tariff Cost | Supplier Name | Price | Currency | View |
-|---|---|---|---|---|---|---|---|---|---|---|
+| Part Number | Mfr | DC | Description | COO | Stock / Qty. | Tariff Cost | Supplier Name | Tipo | Price | Currency | View |
+|---|---|---|---|---|---|---|---|---|---|---|---|
 
 - **DC** = Date Code (semana/año de fabricación).
 - **COO** = Country of Origin.
 - **Tariff Cost** = costo arancelario estimado (si aplica; si no, `—`).
+- **Tipo** = ✅ **Franquiciado** (autorizado por el fabricante) o
+  ⚠️ **Broker** (mercado abierto/independiente). Ver reglas abajo.
 - **View** = enlace directo a la oferta o a la búsqueda del proveedor.
+
+Ordena la tabla con los **Franquiciados primero** y los **Brokers después**
+(igual que NetComponents separa “In-Stock Inventory” de “Brokered Inventory”).
+
+#### Reglas de clasificación Franquiciado vs Broker
+- **✅ Franquiciado / Autorizado:** compra directo al fabricante. Trazabilidad y
+  garantía; riesgo de falsificación ~nulo. Lista de referencia: Digi-Key, Mouser,
+  Arrow, Avnet, Newark/Farnell/element14, TTI, Future, RS, TME, Conrad, Distrelec,
+  Rutronik, LCSC, Chip1Stop, Oneyac, y los fabricantes que venden directo.
+- **⚠️ Broker / Independiente:** mercado abierto, excedentes y spot-buys
+  (ej: Chip 1 Exchange, Converge, casas de excedente). Útil para obsoletos o
+  escasez, PERO advierte SIEMPRE: requiere inspección/pruebas antifalsificación.
+- **Ante la duda, clasifícalo como Broker** y recomienda verificar.
 
 **3. Enlaces de Búsqueda Directa (por continente)**
 Genera enlaces clicables reemplazando `[PART_NUMBER]` por el componente real

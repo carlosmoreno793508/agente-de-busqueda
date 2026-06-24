@@ -41,15 +41,26 @@
       <div class="results-head">
         <h2>Resultados de inventario</h2>
         <div class="results-actions">
+          <button id="fetchLiveBtn" type="button" class="primary-ghost">⚡ Datos en vivo (Nexar)</button>
           <button id="addRowBtn" type="button" class="ghost">+ Fila manual</button>
           <button id="exportBtn" type="button" class="ghost">⬇ Exportar CSV</button>
         </div>
       </div>
+      <div class="legend">
+        <span><span class="tier-badge tier-franquiciado">✅ Franquiciado</span> autorizado por el fabricante · trazabilidad y garantía</span>
+        <span><span class="tier-badge tier-broker">⚠️ Broker</span> mercado abierto / excedente · verifica autenticidad</span>
+      </div>
       <p class="hint" id="resultsHint">
-        Esta tabla es tu <strong>hoja de sourcing</strong>. Las columnas son las que pediste. Puedes capturar
-        manualmente lo que encuentres en cada proveedor, o conectar una API (ver README) para llenarla
-        automáticamente. Usa “Buscar” para abrir las plataformas de abajo.
+        Esta tabla es tu <strong>hoja de sourcing</strong>. La columna <strong>Tipo</strong> marca automáticamente
+        si el proveedor es <strong>Franquiciado</strong> o <strong>Broker</strong> (igual que la separación
+        “In-Stock” vs “Brokered” de NetComponents). Captura manualmente, pulsa “Datos en vivo” para traer ofertas
+        reales vía la API de Nexar/Octopart, o usa “Buscar” para abrir las plataformas.
       </p>
+      <div id="liveConfig" class="live-config" hidden>
+        <input id="backendUrl" type="text" placeholder="URL del backend (ej: http://localhost:8787)" />
+        <span class="hint" style="margin:0">Levanta el proxy en <code>server/</code> (ver README) y pega su URL aquí.</span>
+      </div>
+      <div id="liveStatus" class="live-status" hidden></div>
       <div class="table-wrap">
         <table id="resultsTable">
           <thead>
@@ -62,6 +73,7 @@
               <th>Stock / Qty.</th>
               <th>Tariff Cost</th>
               <th>Supplier Name</th>
+              <th>Tipo</th>
               <th>Price</th>
               <th>Currency</th>
               <th>View</th>
@@ -95,6 +107,7 @@
   </footer>
 
   <script src="sites.js"></script>
+  <script src="distributors.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

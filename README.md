@@ -13,11 +13,29 @@ Proyecto independiente (separado de Astute y TID).
    (Globales, América, Europa, Asia/Pacífico) con un clic.
 3. **Hoja de sourcing** — tabla con exactamente las columnas que necesitas:
    `Part Number · Mfr · DC · Description · COO · Stock/Qty. · Tariff Cost ·
-   Supplier Name · Price · Currency · View`. Editable y exportable a CSV.
-4. **Google Dorks** — comandos de búsqueda avanzada por continente para rastrear
+   Supplier Name · Tipo · Price · Currency · View`. Editable y exportable a CSV.
+   La columna **Tipo** marca automáticamente cada proveedor como
+   ✅ **Franquiciado** (autorizado) o ⚠️ **Broker** (mercado abierto), igual que
+   la separación “In-Stock” vs “Brokered” de NetComponents.
+4. **Datos en vivo (opcional)** — botón “⚡ Datos en vivo” que trae stock y
+   precios reales vía la [API de Nexar/Octopart](server/README.md) y clasifica
+   cada proveedor con el campo oficial `isAuthorized`.
+5. **Google Dorks** — comandos de búsqueda avanzada por continente para rastrear
    distribuidores independientes y excedentes.
-5. **Prompt del agente "ComponentSource AI"** corregido y ampliado
+6. **Prompt del agente "ComponentSource AI"** corregido y ampliado
    (ver [`agent/ComponentSource-AI.md`](agent/ComponentSource-AI.md)).
+
+## Franquiciado vs Broker (¿por qué importa?)
+
+| Tipo | Qué es | Riesgo | Ejemplos |
+|---|---|---|---|
+| ✅ **Franquiciado / Autorizado** | Compra directo al fabricante | Trazabilidad y garantía; falsificación ~nula | Digi-Key, Mouser, Arrow, TTI, Future, RS, Farnell, LCSC |
+| ⚠️ **Broker / Independiente** | Mercado abierto, excedentes, spot-buys | Útil para obsoletos/escasez, pero requiere inspección antifalsificación | Chip 1 Exchange, Converge, casas de excedente |
+| 🔁 **Agregador** | No vende, solo compara | — | Octopart, Findchips, NetComponents |
+
+La clasificación vive en [`distributors.js`](distributors.js) (lista editable de
+distribuidores autorizados; lo que no esté listado se trata como broker por
+precaución).
 
 ## Cómo usarla
 
@@ -41,7 +59,9 @@ También puede publicarse gratis en **GitHub Pages** (Settings → Pages → ram
 | `index.html` | Interfaz (buscador, tabla, enlaces, dorks). |
 | `styles.css` | Estilos (tema oscuro). |
 | `app.js` | Lógica: genera enlaces, maneja la tabla, exporta CSV. |
-| `sites.js` | **Catálogo editable** de plataformas por continente. |
+| `sites.js` | **Catálogo editable** de plataformas por continente (con tier). |
+| `distributors.js` | Clasificador Franquiciado vs Broker. |
+| `server/` | Proxy backend para datos en vivo (Nexar/Octopart). |
 | `agent/ComponentSource-AI.md` | Prompt del agente LLM, corregido. |
 
 ## Plataformas incluidas (por continente)
@@ -68,18 +88,22 @@ También puede publicarse gratis en **GitHub Pages** (Settings → Pages → ram
 - ✅ Se forzó la **tabla de salida** con las columnas exactas solicitadas.
 - ✅ Reglas anti-alucinación: el agente **no inventa** stock/precio/DC/COO.
 
-## ⚠️ Sobre datos en vivo (stock y precio reales)
+## ⚡ Datos en vivo (stock y precio reales)
 
-Los agregadores (Octopart, Findchips, etc.) **bloquean el scraping directo desde
-el navegador** (CORS / anti-bot). Para llenar la tabla automáticamente con stock
-y precio reales hay dos caminos:
+Los agregadores bloquean el scraping desde el navegador (CORS/anti-bot), así que
+los datos en vivo pasan por el **proxy backend** incluido en [`server/`](server/README.md):
 
-1. **API oficial (recomendado):** [Nexar API de Octopart](https://nexar.com/api)
-   ofrece precios/stock multi-distribuidor. Requiere token y un pequeño backend
-   (proxy) para no exponer credenciales. Es el punto de integración natural de
-   esta app — `app.js` ya tiene la tabla lista para recibir esos datos.
-2. **Captura manual / semi-manual:** usa los enlaces para abrir cada plataforma y
-   registra los hallazgos en la tabla (editable) y expórtalos a CSV.
+```bash
+cd server
+cp .env.example .env     # pega tus credenciales de Nexar
+npm install && npm start # http://localhost:8787
+```
+
+Luego en la app: **“⚡ Datos en vivo”** → pega `http://localhost:8787` → la tabla
+se llena con ofertas reales, ya clasificadas Franquiciado/Broker.
+
+Alternativa sin backend: usa los enlaces para abrir cada plataforma y captura
+manualmente en la tabla (editable) y exporta a CSV.
 
 ## Estado
 
