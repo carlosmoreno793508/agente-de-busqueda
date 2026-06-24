@@ -17,8 +17,8 @@ const LAYOUT = [
 ];
 const COL_COUNT = LAYOUT.length;
 const TIER_META = {
-  franquiciado: { cls: "tier-franquiciado", text: "✅ Franquiciado" },
-  broker:       { cls: "tier-broker",       text: "⚠️ Broker" },
+  franquiciado: { cls: "tier-franquiciado", key: "tier_franquiciado" },
+  broker:       { cls: "tier-broker",       key: "tier_broker" },
 };
 
 /* ---------- utilidades ---------- */
@@ -55,8 +55,7 @@ function renderLinks() {
       a.href = href;
       a.target = "_blank";
       a.rel = "noopener";
-      const tierTxt = site.tier === "franquiciado" ? "✅ Franquiciado"
-        : site.tier === "broker" ? "⚠️ Broker" : "🔁 Agregador";
+      const tierTxt = t("tier_" + site.tier);
       a.innerHTML = `
         <span class="name">${site.name}</span>
         <span class="meta"><span class="tier-${site.tier}">${tierTxt}</span></span>
@@ -73,7 +72,7 @@ function tierCellHtml(supplierName) {
   if (!supplierName || !supplierName.trim()) return '<span class="tier-badge tier-none">—</span>';
   const c = classifySupplier(supplierName);
   const m = TIER_META[c.tier];
-  return `<span class="tier-badge ${m.cls}" title="${c.risk}">${m.text}</span>`;
+  return `<span class="tier-badge ${m.cls}" title="${c.risk}">${t(m.key)}</span>`;
 }
 
 function addRow(data = {}) {
@@ -125,14 +124,12 @@ function addRow(data = {}) {
 
 function renderEmpty() {
   const body = document.getElementById("resultsBody");
-  body.innerHTML = `<tr class="empty-row"><td colspan="${COL_COUNT}">
-    Aún no hay resultados. Pulsa “⚡ Datos en vivo” para traer ofertas reales, “+ Fila manual” para capturar,
-    o “Buscar” para abrir las plataformas.</td></tr>`;
+  body.innerHTML = `<tr class="empty-row"><td colspan="${COL_COUNT}">${t("empty_row")}</td></tr>`;
 }
 
 function exportCSV() {
   const rows = [...document.querySelectorAll("#resultsBody tr")].filter((r) => !r.classList.contains("empty-row"));
-  if (!rows.length) { alert("No hay filas para exportar."); return; }
+  if (!rows.length) { alert(t("alert_noexport")); return; }
 
   const header = LAYOUT.map((c) => c.key);
   const lines = [header.join(",")];
@@ -176,20 +173,20 @@ async function fetchLive() {
   const backend = document.getElementById("backendUrl").value.trim();
   if (!backend) {
     cfg.hidden = false;
-    setLiveStatus("Pega la URL del backend y vuelve a pulsar “Datos en vivo”.", "warn");
+    setLiveStatus(t("st_need_backend"), "warn");
     return;
   }
   const pns = parsePartNumbers(document.getElementById("partInput").value);
-  if (!pns.length) { setLiveStatus("Escribe al menos un Part Number.", "warn"); return; }
+  if (!pns.length) { setLiveStatus(t("st_need_pn"), "warn"); return; }
 
-  setLiveStatus("Consultando ofertas en vivo…", "loading");
+  setLiveStatus(t("st_loading"), "loading");
   try {
     const url = backend.replace(/\/$/, "") + "/api/search?q=" + encodeURIComponent(pns.join(","));
     const res = await fetch(url);
     if (!res.ok) throw new Error("HTTP " + res.status);
     const data = await res.json();
     const offers = data.offers || [];
-    if (!offers.length) { setLiveStatus("Sin ofertas para ese(os) Part Number.", "warn"); return; }
+    if (!offers.length) { setLiveStatus(t("st_none"), "warn"); return; }
 
     document.getElementById("resultsBody").innerHTML = "";
     offers.forEach((o) => addRow({
@@ -205,10 +202,9 @@ async function fetchLive() {
       "Currency":     o.currency || "",
       "View":         o.url || "",
     }));
-    setLiveStatus(`${offers.length} ofertas cargadas.`, "ok");
+    setLiveStatus(t("st_loaded").replace("{n}", offers.length), "ok");
   } catch (err) {
-    setLiveStatus("Error al consultar el backend: " + err.message +
-      ". Verifica que el proxy esté corriendo y la URL sea correcta.", "warn");
+    setLiveStatus(t("st_error") + err.message + t("st_error_tail"), "warn");
   }
 }
 
@@ -218,13 +214,13 @@ function renderDorks() {
   const pn = pns[0] || "[PART_NUMBER]";
   const q = `"${pn}"`;
   const dorks = [
-    { label: "Distribuidores con stock", text: `${q} (stock OR inventory OR "in stock") (buy OR price OR quote)` },
-    { label: "Excedentes / obsoletos", text: `${q} (surplus OR excess OR "obsolete" OR "end of life")` },
-    { label: "Asia (China/HK)", text: `${q} (stock OR price) (site:.cn OR site:.hk OR lcsc.com OR utsource.net)` },
-    { label: "Europa", text: `${q} (stock OR price OR lager OR prix) (site:.de OR site:.uk OR site:.eu)` },
-    { label: "América", text: `${q} (stock OR price OR quote) (site:.com OR site:.mx OR site:.ca)` },
-    { label: "Hoja de datos (PDF)", text: `${q} datasheet filetype:pdf` },
-    { label: "Listas de excedentes (Excel)", text: `${q} (stock OR inventory) (filetype:xls OR filetype:xlsx OR filetype:csv)` },
+    { label: t("dork_stock"), text: `${q} (stock OR inventory OR "in stock") (buy OR price OR quote)` },
+    { label: t("dork_excess"), text: `${q} (surplus OR excess OR "obsolete" OR "end of life")` },
+    { label: t("dork_asia"), text: `${q} (stock OR price) (site:.cn OR site:.hk OR lcsc.com OR utsource.net)` },
+    { label: t("dork_europe"), text: `${q} (stock OR price OR lager OR prix) (site:.de OR site:.uk OR site:.eu)` },
+    { label: t("dork_america"), text: `${q} (stock OR price OR quote) (site:.com OR site:.mx OR site:.ca)` },
+    { label: t("dork_datasheet"), text: `${q} datasheet filetype:pdf` },
+    { label: t("dork_excel"), text: `${q} (stock OR inventory) (filetype:xls OR filetype:xlsx OR filetype:csv)` },
   ];
   const list = document.getElementById("dorksList");
   list.innerHTML = "";
@@ -234,7 +230,7 @@ function renderDorks() {
     li.addEventListener("click", () => {
       navigator.clipboard?.writeText(d.text);
       const tag = document.createElement("span");
-      tag.className = "copied"; tag.textContent = "✓ copiado";
+      tag.className = "copied"; tag.textContent = t("copied");
       li.appendChild(tag);
       setTimeout(() => tag.remove(), 1200);
       window.open("https://www.google.com/search?q=" + encodeURIComponent(d.text), "_blank", "noopener");
@@ -258,18 +254,26 @@ function doSearch() {
         if (opened < 12) { window.open(buildUrl(site.url, pn), "_blank", "noopener"); opened++; }
       });
     });
-    if (opened >= 12) {
-      alert("Se abrieron las primeras 12 plataformas (límite para no saturar el navegador). Usa los botones para abrir el resto.");
-    }
+    if (opened >= 12) { alert(t("alert_openall")); }
   }
 }
 
 /* ---------- init ---------- */
+// Re-render del contenido dinámico cuando cambia el idioma.
+window.onLangChange = () => {
+  renderLinks();
+  renderDorks();
+  if (document.querySelector("#resultsBody .empty-row")) renderEmpty();
+};
+
 document.addEventListener("DOMContentLoaded", () => {
+  applyI18n();
   renderEmpty();
   renderLinks();
   renderDorks();
 
+  document.querySelectorAll(".lang-btn").forEach((b) =>
+    b.addEventListener("click", () => setLang(b.dataset.lang)));
   document.getElementById("searchBtn").addEventListener("click", doSearch);
   document.getElementById("partInput").addEventListener("keydown", (e) => { if (e.key === "Enter") doSearch(); });
   document.getElementById("partInput").addEventListener("input", () => { renderLinks(); renderDorks(); });
