@@ -19,6 +19,7 @@ const COL_COUNT = LAYOUT.length;
 const TIER_META = {
   franquiciado: { cls: "tier-franquiciado", key: "tier_franquiciado" },
   broker:       { cls: "tier-broker",       key: "tier_broker" },
+  agregador:    { cls: "tier-agregador",    key: "tier_agregador" },
 };
 
 /* ---------- utilidades ---------- */
@@ -68,11 +69,12 @@ function renderLinks() {
 }
 
 /* ---------- tabla de resultados ---------- */
-function tierCellHtml(supplierName) {
-  if (!supplierName || !supplierName.trim()) return '<span class="tier-badge tier-none">—</span>';
-  const c = classifySupplier(supplierName);
-  const m = TIER_META[c.tier];
-  return `<span class="tier-badge ${m.cls}" title="${c.risk}">${t(m.key)}</span>`;
+function tierCellHtml(supplierName, explicitTier) {
+  const tier = explicitTier ||
+    (supplierName && supplierName.trim() ? classifySupplier(supplierName).tier : null);
+  if (!tier) return '<span class="tier-badge tier-none">—</span>';
+  const m = TIER_META[tier];
+  return `<span class="tier-badge ${m.cls}">${t(m.key)}</span>`;
 }
 
 function addRow(data = {}) {
@@ -92,7 +94,7 @@ function addRow(data = {}) {
       if (col.key === "Supplier Name") supplierCell = td;
     } else if (col.type === "tier") {
       td.dataset.col = "Tipo";
-      td.innerHTML = tierCellHtml(data["Supplier Name"]);
+      td.innerHTML = tierCellHtml(data["Supplier Name"], data["Tier"]);
       tierCell = td;
     } else if (col.type === "view") {
       const link = data["View"] || "";
@@ -125,6 +127,30 @@ function addRow(data = {}) {
 function renderEmpty() {
   const body = document.getElementById("resultsBody");
   body.innerHTML = `<tr class="empty-row"><td colspan="${COL_COUNT}">${t("empty_row")}</td></tr>`;
+}
+
+// Llena la tabla con una fila por plataforma (para cada Part Number).
+// Part Number, Supplier Name, Tipo y View quedan listos; las columnas de
+// stock/precio se completan con "Datos en vivo" o captura manual.
+function fillFromPlatforms(pns) {
+  const regions = selectedRegions();
+  document.getElementById("resultsBody").innerHTML = "";
+  let count = 0;
+  pns.forEach((pn) => {
+    Object.entries(SITES).forEach(([key, group]) => {
+      if (!regions.includes(key)) return;
+      group.sites.forEach((site) => {
+        addRow({
+          "Part Number": pn,
+          "Supplier Name": site.name,
+          "Tier": site.tier,
+          "View": buildUrl(site.url, pn),
+        });
+        count++;
+      });
+    });
+  });
+  if (!count) renderEmpty();
 }
 
 function exportCSV() {
@@ -243,6 +269,8 @@ function renderDorks() {
 function doSearch() {
   renderLinks();
   renderDorks();
+  const pns = parsePartNumbers(document.getElementById("partInput").value);
+  if (pns.length) fillFromPlatforms(pns);
   if (document.getElementById("openAll").checked) {
     const pn = parsePartNumbers(document.getElementById("partInput").value)[0];
     if (!pn) return;
