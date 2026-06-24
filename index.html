@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ComponentSource AI — Buscador Global de Componentes Electrónicos</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">🔎</span>
+      <div>
+        <h1>ComponentSource&nbsp;AI</h1>
+        <p class="tagline">Buscador global de componentes electrónicos · Sourcing Manager</p>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- ============ BUSCADOR ============ -->
+    <section class="search-card">
+      <label for="partInput" class="search-label">Part Number(s)</label>
+      <p class="hint">Escribe uno o varios números de parte separados por coma, espacio o salto de línea
+        (ej: <code>CM5104032, NE555, STM32F103C8T6</code>).</p>
+      <div class="search-row">
+        <input id="partInput" type="text" placeholder="Ingresa el Part Number…" autocomplete="off" />
+        <button id="searchBtn" type="button">Buscar</button>
+      </div>
+      <div class="filter-row">
+        <label><input type="checkbox" class="region-filter" value="global" checked /> Globales</label>
+        <label><input type="checkbox" class="region-filter" value="america" checked /> América</label>
+        <label><input type="checkbox" class="region-filter" value="europe" checked /> Europa</label>
+        <label><input type="checkbox" class="region-filter" value="asia" checked /> Asia/Pacífico</label>
+        <label class="open-all"><input type="checkbox" id="openAll" /> Abrir todos en pestañas nuevas</label>
+      </div>
+    </section>
+
+    <!-- ============ TABLA DE RESULTADOS ============ -->
+    <section class="results-card">
+      <div class="results-head">
+        <h2>Resultados de inventario</h2>
+        <div class="results-actions">
+          <button id="fetchLiveBtn" type="button" class="primary-ghost">⚡ Datos en vivo (Nexar)</button>
+          <button id="addRowBtn" type="button" class="ghost">+ Fila manual</button>
+          <button id="exportBtn" type="button" class="ghost">⬇ Exportar CSV</button>
+        </div>
+      </div>
+      <div class="legend">
+        <span><span class="tier-badge tier-franquiciado">✅ Franquiciado</span> autorizado por el fabricante · trazabilidad y garantía</span>
+        <span><span class="tier-badge tier-broker">⚠️ Broker</span> mercado abierto / excedente · verifica autenticidad</span>
+      </div>
+      <p class="hint" id="resultsHint">
+        Esta tabla es tu <strong>hoja de sourcing</strong>. La columna <strong>Tipo</strong> marca automáticamente
+        si el proveedor es <strong>Franquiciado</strong> o <strong>Broker</strong> (igual que la separación
+        “In-Stock” vs “Brokered” de NetComponents). Captura manualmente, pulsa “Datos en vivo” para traer ofertas
+        reales vía la API de Nexar/Octopart, o usa “Buscar” para abrir las plataformas.
+      </p>
+      <div id="liveConfig" class="live-config" hidden>
+        <input id="backendUrl" type="text" placeholder="URL del backend (ej: http://localhost:8787)" />
+        <span class="hint" style="margin:0">Levanta el proxy en <code>server/</code> (ver README) y pega su URL aquí.</span>
+      </div>
+      <div id="liveStatus" class="live-status" hidden></div>
+      <div class="table-wrap">
+        <table id="resultsTable">
+          <thead>
+            <tr>
+              <th>Part Number</th>
+              <th>Mfr</th>
+              <th>DC</th>
+              <th>Description</th>
+              <th>COO</th>
+              <th>Stock / Qty.</th>
+              <th>Tariff Cost</th>
+              <th>Supplier Name</th>
+              <th>Tipo</th>
+              <th>Price</th>
+              <th>Currency</th>
+              <th>View</th>
+            </tr>
+          </thead>
+          <tbody id="resultsBody">
+            <!-- filas dinámicas -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ============ ENLACES POR CONTINENTE ============ -->
+    <section class="links-card">
+      <h2>Enlaces de búsqueda directa por continente</h2>
+      <p class="hint">Cada botón abre la búsqueda del Part Number en esa plataforma. Marca/desmarca regiones arriba.</p>
+      <div id="linksContainer"><!-- grupos dinámicos --></div>
+    </section>
+
+    <!-- ============ GOOGLE DORKS ============ -->
+    <section class="dorks-card">
+      <h2>Estrategia de búsqueda avanzada (Google Dorks)</h2>
+      <p class="hint">Comandos para rastrear distribuidores independientes y excedentes. Click para copiar.</p>
+      <ul id="dorksList"><!-- dorks dinámicos --></ul>
+    </section>
+  </main>
+
+  <footer>
+    <p>ComponentSource AI · Herramienta de abastecimiento. Verifica siempre stock, fechas (DC) y origen (COO)
+      directamente con el proveedor antes de comprar.</p>
+  </footer>
+
+  <script src="sites.js"></script>
+  <script src="distributors.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
