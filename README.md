@@ -24,6 +24,9 @@ Proyecto independiente (separado de Astute y TID).
    distribuidores independientes y excedentes.
 6. **Prompt del agente "ComponentSource AI"** corregido y ampliado
    (ver [`agent/ComponentSource-AI.md`](agent/ComponentSource-AI.md)).
+7. **Bilingüe ES / EN** — selector de idioma en la cabecera (recuerda tu
+   preferencia) y **guía de uso rápida** integrada. Traducciones en
+   [`i18n.js`](i18n.js).
 
 ## Franquiciado vs Broker (¿por qué importa?)
 

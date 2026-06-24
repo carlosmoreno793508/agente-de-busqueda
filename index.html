@@ -12,53 +12,57 @@
       <span class="logo">🔎</span>
       <div>
         <h1>ComponentSource&nbsp;AI</h1>
-        <p class="tagline">Buscador global de componentes electrónicos · Sourcing Manager</p>
+        <p class="tagline" data-i18n="tagline">Buscador global de componentes electrónicos · Sourcing Manager</p>
+      </div>
+      <div class="lang-switch">
+        <button type="button" class="lang-btn" data-lang="es">ES</button>
+        <button type="button" class="lang-btn" data-lang="en">EN</button>
       </div>
     </div>
   </header>
 
   <main>
+    <!-- ============ GUÍA DE USO ============ -->
+    <details class="guide-card">
+      <summary data-i18n="guide_title">📖 Guía de uso rápida</summary>
+      <div class="guide-body" data-i18n-html="guide_html"></div>
+    </details>
+
     <!-- ============ BUSCADOR ============ -->
     <section class="search-card">
-      <label for="partInput" class="search-label">Part Number(s)</label>
-      <p class="hint">Escribe uno o varios números de parte separados por coma, espacio o salto de línea
-        (ej: <code>CM5104032, NE555, STM32F103C8T6</code>).</p>
+      <label for="partInput" class="search-label" data-i18n="search_label">Part Number(s)</label>
+      <p class="hint" data-i18n-html="search_hint"></p>
       <div class="search-row">
-        <input id="partInput" type="text" placeholder="Ingresa el Part Number…" autocomplete="off" />
-        <button id="searchBtn" type="button">Buscar</button>
+        <input id="partInput" type="text" data-i18n-ph="search_ph" placeholder="Ingresa el Part Number…" autocomplete="off" />
+        <button id="searchBtn" type="button" data-i18n="btn_search">Buscar</button>
       </div>
       <div class="filter-row">
-        <label><input type="checkbox" class="region-filter" value="global" checked /> Globales</label>
-        <label><input type="checkbox" class="region-filter" value="america" checked /> América</label>
-        <label><input type="checkbox" class="region-filter" value="europe" checked /> Europa</label>
-        <label><input type="checkbox" class="region-filter" value="asia" checked /> Asia/Pacífico</label>
-        <label class="open-all"><input type="checkbox" id="openAll" /> Abrir todos en pestañas nuevas</label>
+        <label><input type="checkbox" class="region-filter" value="global" checked /> <span data-i18n="f_global">Globales</span></label>
+        <label><input type="checkbox" class="region-filter" value="america" checked /> <span data-i18n="f_america">América</span></label>
+        <label><input type="checkbox" class="region-filter" value="europe" checked /> <span data-i18n="f_europe">Europa</span></label>
+        <label><input type="checkbox" class="region-filter" value="asia" checked /> <span data-i18n="f_asia">Asia/Pacífico</span></label>
+        <label class="open-all"><input type="checkbox" id="openAll" /> <span data-i18n="f_openall">Abrir todos en pestañas nuevas</span></label>
       </div>
     </section>
 
     <!-- ============ TABLA DE RESULTADOS ============ -->
     <section class="results-card">
       <div class="results-head">
-        <h2>Resultados de inventario</h2>
+        <h2 data-i18n="results_title">Resultados de inventario</h2>
         <div class="results-actions">
-          <button id="fetchLiveBtn" type="button" class="primary-ghost">⚡ Datos en vivo (Nexar)</button>
-          <button id="addRowBtn" type="button" class="ghost">+ Fila manual</button>
-          <button id="exportBtn" type="button" class="ghost">⬇ Exportar CSV</button>
+          <button id="fetchLiveBtn" type="button" class="primary-ghost" data-i18n="btn_live">⚡ Datos en vivo (Nexar)</button>
+          <button id="addRowBtn" type="button" class="ghost" data-i18n="btn_addrow">+ Fila manual</button>
+          <button id="exportBtn" type="button" class="ghost" data-i18n="btn_export">⬇ Exportar CSV</button>
         </div>
       </div>
       <div class="legend">
-        <span><span class="tier-badge tier-franquiciado">✅ Franquiciado</span> autorizado por el fabricante · trazabilidad y garantía</span>
-        <span><span class="tier-badge tier-broker">⚠️ Broker</span> mercado abierto / excedente · verifica autenticidad</span>
+        <span><span class="tier-badge tier-franquiciado" data-i18n="legend_franq">✅ Franquiciado</span> <span data-i18n="legend_franq_desc">autorizado por el fabricante · trazabilidad y garantía</span></span>
+        <span><span class="tier-badge tier-broker" data-i18n="legend_broker">⚠️ Broker</span> <span data-i18n="legend_broker_desc">mercado abierto / excedente · verifica autenticidad</span></span>
       </div>
-      <p class="hint" id="resultsHint">
-        Esta tabla es tu <strong>hoja de sourcing</strong>. La columna <strong>Tipo</strong> marca automáticamente
-        si el proveedor es <strong>Franquiciado</strong> o <strong>Broker</strong> (igual que la separación
-        “In-Stock” vs “Brokered” de NetComponents). Captura manualmente, pulsa “Datos en vivo” para traer ofertas
-        reales vía la API de Nexar/Octopart, o usa “Buscar” para abrir las plataformas.
-      </p>
+      <p class="hint" id="resultsHint" data-i18n-html="results_hint"></p>
       <div id="liveConfig" class="live-config" hidden>
-        <input id="backendUrl" type="text" placeholder="URL del backend (ej: http://localhost:8787)" />
-        <span class="hint" style="margin:0">Levanta el proxy en <code>server/</code> (ver README) y pega su URL aquí.</span>
+        <input id="backendUrl" type="text" data-i18n-ph="live_ph" placeholder="URL del backend (ej: http://localhost:8787)" />
+        <span class="hint" style="margin:0" data-i18n-html="live_hint"></span>
       </div>
       <div id="liveStatus" class="live-status" hidden></div>
       <div class="table-wrap">
@@ -73,39 +77,37 @@
               <th>Stock / Qty.</th>
               <th>Tariff Cost</th>
               <th>Supplier Name</th>
-              <th>Tipo</th>
+              <th data-i18n="th_tipo">Tipo</th>
               <th>Price</th>
               <th>Currency</th>
               <th>View</th>
             </tr>
           </thead>
-          <tbody id="resultsBody">
-            <!-- filas dinámicas -->
-          </tbody>
+          <tbody id="resultsBody"><!-- filas dinámicas --></tbody>
         </table>
       </div>
     </section>
 
     <!-- ============ ENLACES POR CONTINENTE ============ -->
     <section class="links-card">
-      <h2>Enlaces de búsqueda directa por continente</h2>
-      <p class="hint">Cada botón abre la búsqueda del Part Number en esa plataforma. Marca/desmarca regiones arriba.</p>
+      <h2 data-i18n="links_title">Enlaces de búsqueda directa por continente</h2>
+      <p class="hint" data-i18n="links_hint">Cada botón abre la búsqueda del Part Number en esa plataforma.</p>
       <div id="linksContainer"><!-- grupos dinámicos --></div>
     </section>
 
     <!-- ============ GOOGLE DORKS ============ -->
     <section class="dorks-card">
-      <h2>Estrategia de búsqueda avanzada (Google Dorks)</h2>
-      <p class="hint">Comandos para rastrear distribuidores independientes y excedentes. Click para copiar.</p>
+      <h2 data-i18n="dorks_title">Estrategia de búsqueda avanzada (Google Dorks)</h2>
+      <p class="hint" data-i18n="dorks_hint">Comandos para rastrear distribuidores independientes y excedentes.</p>
       <ul id="dorksList"><!-- dorks dinámicos --></ul>
     </section>
   </main>
 
   <footer>
-    <p>ComponentSource AI · Herramienta de abastecimiento. Verifica siempre stock, fechas (DC) y origen (COO)
-      directamente con el proveedor antes de comprar.</p>
+    <p data-i18n="footer">ComponentSource AI · Herramienta de abastecimiento.</p>
   </footer>
 
+  <script src="i18n.js"></script>
   <script src="sites.js"></script>
   <script src="distributors.js"></script>
   <script src="app.js"></script>
