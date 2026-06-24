@@ -1,0 +1,23 @@
+# Blueprint de Render para desplegar el backend de datos en vivo en 1 clic.
+# Úsalo con el botón "Deploy to Render" del README, o en
+# https://dashboard.render.com/ -> New -> Blueprint -> apuntando a este repo.
+#
+# Tras desplegar, define las variables de entorno (Nexar o Mouser) en el panel
+# de Render y copia la URL pública (https://...onrender.com) en el campo
+# "URL del backend" de la app.
+services:
+  - type: web
+    name: componentsource-backend
+    runtime: node
+    plan: free
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NEXAR_CLIENT_ID
+        sync: false
+      - key: NEXAR_CLIENT_SECRET
+        sync: false
+      - key: MOUSER_API_KEY
+        sync: false

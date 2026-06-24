@@ -1,17 +1,21 @@
 /*
  * ComponentSource AI — Proxy backend para datos en vivo.
  *
- * Habla con la API de Nexar (Octopart) usando OAuth2 client-credentials y
- * expone un endpoint simple que el frontend consume:
- *
+ * Expone un endpoint que el frontend consume:
  *   GET /api/search?q=NE555,STM32F103C8T6
  *
- * Devuelve ofertas normalizadas con las columnas de la app y clasifica cada
- * proveedor como FRANQUICIADO o BROKER usando el campo oficial `isAuthorized`
- * de Nexar (con respaldo en nuestra lista local de distribuidores).
+ * Soporta DOS proveedores de datos (elige automáticamente según las
+ * credenciales que configures en variables de entorno):
  *
- * Credenciales: crea una app en https://nexar.com/ y pon NEXAR_CLIENT_ID /
- * NEXAR_CLIENT_SECRET en un archivo .env (ver .env.example).
+ *   1) NEXAR (Octopart)  -> stock/precio multi-distribuidor. Marca cada
+ *      proveedor con el campo oficial `isAuthorized` (franquiciado vs broker).
+ *      Variables: NEXAR_CLIENT_ID, NEXAR_CLIENT_SECRET   (crea app en nexar.com)
+ *
+ *   2) MOUSER            -> stock/precio del propio Mouser (franquiciado).
+ *      Más fácil: key gratis e instantánea en mouser.com/api-hub.
+ *      Variable: MOUSER_API_KEY
+ *
+ * Si hay credenciales de Nexar se usa Nexar; si no, se usa Mouser.
  */
 
 require("dotenv").config();
@@ -23,23 +27,28 @@ const app = express();
 app.use(cors());
 
 const PORT = process.env.PORT || 8787;
-const CLIENT_ID = process.env.NEXAR_CLIENT_ID;
-const CLIENT_SECRET = process.env.NEXAR_CLIENT_SECRET;
+const NEXAR_ID = process.env.NEXAR_CLIENT_ID;
+const NEXAR_SECRET = process.env.NEXAR_CLIENT_SECRET;
+const MOUSER_KEY = process.env.MOUSER_API_KEY;
+
+function provider() {
+  if (NEXAR_ID && NEXAR_SECRET) return "nexar";
+  if (MOUSER_KEY) return "mouser";
+  return null;
+}
+
+/* ============================ NEXAR (Octopart) ============================ */
 const TOKEN_URL = "https://identity.nexar.com/connect/token";
 const GRAPHQL_URL = "https://api.nexar.com/graphql";
-
 let cachedToken = null;
 let tokenExpiry = 0;
 
 async function getToken() {
   if (cachedToken && Date.now() < tokenExpiry - 60_000) return cachedToken;
-  if (!CLIENT_ID || !CLIENT_SECRET) {
-    throw new Error("Faltan NEXAR_CLIENT_ID / NEXAR_CLIENT_SECRET en el .env");
-  }
   const body = new URLSearchParams({
     grant_type: "client_credentials",
-    client_id: CLIENT_ID,
-    client_secret: CLIENT_SECRET,
+    client_id: NEXAR_ID,
+    client_secret: NEXAR_SECRET,
     scope: "supply.domain",
   });
   const res = await fetch(TOKEN_URL, {
@@ -66,12 +75,7 @@ const SEARCH_QUERY = `
             company { name }
             isAuthorized
             country
-            offers {
-              inventoryLevel
-              moq
-              clickUrl
-              prices { quantity price currency }
-            }
+            offers { inventoryLevel moq clickUrl prices { quantity price currency } }
           }
         }
       }
@@ -79,77 +83,114 @@ const SEARCH_QUERY = `
   }
 `;
 
-async function searchPart(token, q) {
-  const res = await fetch(GRAPHQL_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
-    body: JSON.stringify({ query: SEARCH_QUERY, variables: { q, limit: 10 } }),
-  });
-  if (!res.ok) throw new Error("GraphQL Nexar falló: HTTP " + res.status);
-  const json = await res.json();
-  if (json.errors) throw new Error("GraphQL: " + JSON.stringify(json.errors));
-  return json.data?.supSearchMpn?.results || [];
-}
-
-// Convierte la respuesta de Nexar en filas con las columnas de la app.
-function normalize(results) {
-  const offers = [];
-  for (const r of results) {
-    const part = r.part || {};
-    const mfr = part.manufacturer?.name || "";
-    for (const seller of part.sellers || []) {
-      const supplierName = seller.company?.name || "";
-      // Tier: el campo oficial isAuthorized manda; si no, nuestra heurística.
-      const tier = seller.isAuthorized ? "franquiciado" : classifySupplier(supplierName).tier;
-      for (const offer of seller.offers || []) {
-        const lowest = (offer.prices || []).reduce(
-          (min, p) => (min == null || p.price < min.price ? p : min), null);
-        offers.push({
-          partNumber: part.mpn || "",
-          mfr,
-          dateCode: "",
-          description: part.shortDescription || "",
-          coo: seller.country || "",
-          stock: offer.inventoryLevel ?? null,
-          tariffCost: "",
-          supplier: supplierName,
-          tier,                       // "franquiciado" | "broker"
-          authorized: !!seller.isAuthorized,
-          price: lowest ? lowest.price : null,
-          currency: lowest ? lowest.currency : "",
-          url: offer.clickUrl || "",
-        });
+async function searchNexar(parts) {
+  const token = await getToken();
+  let all = [];
+  for (const p of parts) {
+    const res = await fetch(GRAPHQL_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+      body: JSON.stringify({ query: SEARCH_QUERY, variables: { q: p, limit: 10 } }),
+    });
+    if (!res.ok) throw new Error("GraphQL Nexar falló: HTTP " + res.status);
+    const json = await res.json();
+    if (json.errors) throw new Error("GraphQL: " + JSON.stringify(json.errors));
+    const results = json.data?.supSearchMpn?.results || [];
+    for (const r of results) {
+      const part = r.part || {};
+      const mfr = part.manufacturer?.name || "";
+      for (const seller of part.sellers || []) {
+        const supplierName = seller.company?.name || "";
+        const tier = seller.isAuthorized ? "franquiciado" : classifySupplier(supplierName).tier;
+        for (const offer of seller.offers || []) {
+          const lowest = (offer.prices || []).reduce(
+            (min, pr) => (min == null || pr.price < min.price ? pr : min), null);
+          all.push({
+            partNumber: part.mpn || "",
+            mfr,
+            dateCode: "",
+            description: part.shortDescription || "",
+            coo: seller.country || "",
+            stock: offer.inventoryLevel ?? null,
+            tariffCost: "",
+            supplier: supplierName,
+            tier,
+            authorized: !!seller.isAuthorized,
+            price: lowest ? lowest.price : null,
+            currency: lowest ? lowest.currency : "",
+            url: offer.clickUrl || "",
+          });
+        }
       }
     }
   }
-  // Autorizados primero, luego por mayor stock.
-  offers.sort((a, b) =>
-    (b.authorized - a.authorized) || ((b.stock || 0) - (a.stock || 0)));
-  return offers;
+  return all;
 }
 
+/* ================================ MOUSER ================================== */
+async function searchMouser(parts) {
+  let all = [];
+  for (const p of parts) {
+    const res = await fetch(
+      "https://api.mouser.com/api/v1/search/partnumber?apiKey=" + encodeURIComponent(MOUSER_KEY),
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ SearchByPartRequest: { mouserPartNumber: p } }),
+      }
+    );
+    if (!res.ok) throw new Error("Mouser API falló: HTTP " + res.status);
+    const json = await res.json();
+    const items = json?.SearchResults?.Parts || [];
+    for (const it of items) {
+      const lowest = (it.PriceBreaks || []).reduce((min, pb) => {
+        const val = parseFloat(String(pb.Price).replace(/[^0-9.]/g, ""));
+        return (min == null || val < min.val) ? { val, currency: pb.Currency } : min;
+      }, null);
+      const stockNum = parseInt(String(it.Availability || "").replace(/[^0-9]/g, ""), 10);
+      all.push({
+        partNumber: it.ManufacturerPartNumber || p,
+        mfr: it.Manufacturer || "",
+        dateCode: "",
+        description: it.Description || "",
+        coo: it.CountryOfOrigin || "",
+        stock: Number.isFinite(stockNum) ? stockNum : null,
+        tariffCost: "",
+        supplier: "Mouser Electronics",
+        tier: "franquiciado",
+        authorized: true,
+        price: lowest ? lowest.val : null,
+        currency: lowest ? lowest.currency : "",
+        url: it.ProductDetailUrl || "",
+      });
+    }
+  }
+  return all;
+}
+
+/* ================================ API ==================================== */
 app.get("/api/search", async (req, res) => {
   const q = (req.query.q || "").toString().trim();
   if (!q) return res.status(400).json({ error: "Falta el parámetro q (Part Number)." });
+  const p = provider();
+  if (!p) return res.status(503).json({ error: "Sin credenciales: configura NEXAR_CLIENT_ID/SECRET o MOUSER_API_KEY." });
   try {
-    const token = await getToken();
     const parts = q.split(",").map((s) => s.trim()).filter(Boolean);
-    let all = [];
-    for (const p of parts) {
-      const results = await searchPart(token, p);
-      all = all.concat(normalize(results));
-    }
-    res.json({ count: all.length, offers: all });
+    const offers = p === "nexar" ? await searchNexar(parts) : await searchMouser(parts);
+    // Autorizados primero, luego por mayor stock.
+    offers.sort((a, b) => (b.authorized - a.authorized) || ((b.stock || 0) - (a.stock || 0)));
+    res.json({ provider: p, count: offers.length, offers });
   } catch (err) {
     res.status(502).json({ error: err.message });
   }
 });
 
-app.get("/health", (_req, res) => res.json({ ok: true, hasCreds: !!(CLIENT_ID && CLIENT_SECRET) }));
+app.get("/health", (_req, res) =>
+  res.json({ ok: true, provider: provider(), hasCreds: !!provider() }));
 
 app.listen(PORT, () => {
   console.log(`ComponentSource proxy escuchando en http://localhost:${PORT}`);
-  if (!CLIENT_ID || !CLIENT_SECRET) {
-    console.warn("⚠️  Sin credenciales Nexar: copia .env.example a .env y agrega tus claves.");
-  }
+  const p = provider();
+  if (p) console.log(`Proveedor de datos activo: ${p.toUpperCase()}`);
+  else console.warn("⚠️  Sin credenciales: copia .env.example a .env y agrega Nexar o Mouser.");
 });

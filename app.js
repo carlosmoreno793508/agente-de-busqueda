@@ -194,16 +194,17 @@ function setLiveStatus(msg, kind) {
   el.textContent = msg;
 }
 
-async function fetchLive() {
+async function fetchLive(auto) {
   const cfg = document.getElementById("liveConfig");
   const backend = document.getElementById("backendUrl").value.trim();
   if (!backend) {
+    if (auto) return;                 // en modo automático no molestamos
     cfg.hidden = false;
     setLiveStatus(t("st_need_backend"), "warn");
     return;
   }
   const pns = parsePartNumbers(document.getElementById("partInput").value);
-  if (!pns.length) { setLiveStatus(t("st_need_pn"), "warn"); return; }
+  if (!pns.length) { if (!auto) setLiveStatus(t("st_need_pn"), "warn"); return; }
 
   setLiveStatus(t("st_loading"), "loading");
   try {
@@ -270,7 +271,11 @@ function doSearch() {
   renderLinks();
   renderDorks();
   const pns = parsePartNumbers(document.getElementById("partInput").value);
-  if (pns.length) fillFromPlatforms(pns);
+  if (pns.length) {
+    fillFromPlatforms(pns);
+    // Si hay backend configurado, superpone stock/precio reales automáticamente.
+    if (document.getElementById("backendUrl").value.trim()) fetchLive(true);
+  }
   if (document.getElementById("openAll").checked) {
     const pn = parsePartNumbers(document.getElementById("partInput").value)[0];
     if (!pn) return;
@@ -308,5 +313,17 @@ document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll(".region-filter").forEach((c) => c.addEventListener("change", renderLinks));
   document.getElementById("addRowBtn").addEventListener("click", () => addRow());
   document.getElementById("exportBtn").addEventListener("click", exportCSV);
-  document.getElementById("fetchLiveBtn").addEventListener("click", fetchLive);
+  document.getElementById("fetchLiveBtn").addEventListener("click", () => fetchLive(false));
+
+  // Backend de datos en vivo: recordar la URL entre sesiones.
+  const backendInput = document.getElementById("backendUrl");
+  const liveConfig = document.getElementById("liveConfig");
+  liveConfig.hidden = false; // visible siempre para que se pueda pegar la URL
+  try {
+    const saved = localStorage.getItem("cs_backend");
+    if (saved) backendInput.value = saved;
+  } catch (e) {}
+  backendInput.addEventListener("input", () => {
+    try { localStorage.setItem("cs_backend", backendInput.value.trim()); } catch (e) {}
+  });
 });
