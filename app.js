@@ -23,8 +23,18 @@ const TIER_META = {
 };
 
 /* ---------- utilidades ---------- */
+// Separa múltiples part numbers SOLO por coma, punto y coma o salto de línea.
+// (No por espacios, para preservar part numbers que contengan espacios u otros
+// caracteres especiales.)
 function parsePartNumbers(raw) {
-  return raw.split(/[\s,;\n]+/).map((s) => s.trim()).filter(Boolean);
+  return raw.split(/[,;\n\r]+/).map((s) => s.trim()).filter(Boolean);
+}
+// Part numbers de la última búsqueda (para mantener enlaces/dorks tras limpiar
+// la caja de búsqueda).
+let lastPNs = [];
+function pnSource() {
+  const fromBox = parsePartNumbers(document.getElementById("partInput").value);
+  return fromBox.length ? fromBox : lastPNs;
 }
 function buildUrl(template, pn) {
   return template.replace("{PN}", encodeURIComponent(pn));
@@ -36,7 +46,7 @@ function selectedRegions() {
 /* ---------- enlaces por continente ---------- */
 function renderLinks() {
   const container = document.getElementById("linksContainer");
-  const pns = parsePartNumbers(document.getElementById("partInput").value);
+  const pns = pnSource();
   const pn = pns[0] || "";
   const regions = selectedRegions();
   container.innerHTML = "";
@@ -244,7 +254,7 @@ function offerToData(o) {
 
 /* ---------- Google Dorks ---------- */
 function renderDorks() {
-  const pns = parsePartNumbers(document.getElementById("partInput").value);
+  const pns = pnSource();
   const pn = pns[0] || "[PART_NUMBER]";
   const q = `"${pn}"`;
   const dorks = [
@@ -273,20 +283,55 @@ function renderDorks() {
   });
 }
 
+/* ---------- subida de archivos ---------- */
+// Extrae part numbers de texto: una línea = un PN; si la línea es CSV/TSV toma
+// la primera columna; ignora encabezados comunes.
+function extractPNsFromText(text) {
+  const out = [];
+  String(text || "").split(/\r?\n/).forEach((line) => {
+    const first = line.split(/[,;\t]/)[0].trim().replace(/^["']|["']$/g, "");
+    if (!first) return;
+    if (/^(part\s*number|part\s*no\.?|mpn|number|p\/n|sku)$/i.test(first)) return;
+    out.push(first);
+  });
+  return out;
+}
+function handleFiles(files) {
+  const list = [...files];
+  if (!list.length) return;
+  let pending = list.length;
+  const all = [];
+  const done = () => {
+    if (--pending > 0) return;
+    const uniq = [...new Set(all)];
+    if (!uniq.length) { setLiveStatus(t("st_file_none"), "warn"); return; }
+    document.getElementById("partInput").value = uniq.join(", ");
+    doSearch();
+  };
+  list.forEach((file) => {
+    const reader = new FileReader();
+    reader.onload = () => { all.push(...extractPNsFromText(reader.result)); done(); };
+    reader.onerror = done;
+    reader.readAsText(file);
+  });
+}
+
 /* ---------- búsqueda ---------- */
 function doSearch() {
+  const pns = parsePartNumbers(document.getElementById("partInput").value);
+  if (!pns.length) { renderLinks(); renderDorks(); return; }
+  lastPNs = pns;                       // recordar para enlaces/dorks tras limpiar
   renderLinks();
   renderDorks();
-  const pns = parsePartNumbers(document.getElementById("partInput").value);
-  if (pns.length) {
-    fillFromPlatforms(pns);
-    // Si hay backend configurado, superpone stock/precio reales automáticamente.
-    if (document.getElementById("backendUrl").value.trim()) fetchLive(true);
-    else setLiveStatus(t("connect_hint"), "info");
-  }
+
+  fillFromPlatforms(pns);
+  // Si hay backend configurado, superpone stock/precio reales automáticamente.
+  // (fetchLive lee los part numbers de forma síncrona antes de limpiar la caja.)
+  if (document.getElementById("backendUrl").value.trim()) fetchLive(true);
+  else setLiveStatus(t("connect_hint"), "info");
+
   if (document.getElementById("openAll").checked) {
-    const pn = parsePartNumbers(document.getElementById("partInput").value)[0];
-    if (!pn) return;
+    const pn = pns[0];
     const regions = selectedRegions();
     let opened = 0;
     Object.entries(SITES).forEach(([key, group]) => {
@@ -297,6 +342,9 @@ function doSearch() {
     });
     if (opened >= 12) { alert(t("alert_openall")); }
   }
+
+  // Limpiar la caja de búsqueda (los enlaces/dorks/tabla ya quedaron con el valor).
+  document.getElementById("partInput").value = "";
 }
 
 /* ---------- init ---------- */
@@ -322,6 +370,14 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("addRowBtn").addEventListener("click", () => addRow());
   document.getElementById("exportBtn").addEventListener("click", exportCSV);
   document.getElementById("fetchLiveBtn").addEventListener("click", () => fetchLive(false));
+
+  // Subir archivo(s) con part numbers.
+  const fileInput = document.getElementById("fileInput");
+  document.getElementById("fileBtn").addEventListener("click", () => fileInput.click());
+  fileInput.addEventListener("change", (e) => {
+    handleFiles(e.target.files);
+    fileInput.value = ""; // permite re-seleccionar el mismo archivo
+  });
 
   // Backend de datos en vivo: recordar la URL entre sesiones.
   const backendInput = document.getElementById("backendUrl");
