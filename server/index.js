@@ -185,7 +185,9 @@ app.get("/api/search", async (req, res) => {
     const offers = p === "nexar" ? await searchNexar(parts) : await searchMouser(parts);
     // Autorizados primero, luego por mayor stock.
     offers.sort((a, b) => (b.authorized - a.authorized) || ((b.stock || 0) - (a.stock || 0)));
-    res.json({ provider: p, count: offers.length, offers });
+    // Limitamos a las más relevantes para una tabla manejable.
+    const top = offers.slice(0, 60);
+    res.json({ provider: p, count: top.length, total: offers.length, offers: top });
   } catch (err) {
     res.status(502).json({ error: err.message });
   }

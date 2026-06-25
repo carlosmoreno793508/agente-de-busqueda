@@ -215,7 +215,15 @@ async function fetchLive(auto) {
     const offers = data.offers || [];
     if (!offers.length) { setLiveStatus(t("st_none"), "warn"); return; }
 
-    overlayOffers(offers);
+    // Con datos en vivo, mostramos directo las ofertas reales (ordenadas por el
+    // backend: autorizados primero, luego por stock), en vez de las filas de
+    // plataformas. Para navegar a los agregadores está la sección de enlaces.
+    const body = document.getElementById("resultsBody");
+    body.innerHTML = "";
+    offers.forEach((o) => {
+      const tr = addRow(offerToData(o));
+      tr.classList.add("live-filled");
+    });
     const prov = data.provider ? " (" + data.provider + ")" : "";
     setLiveStatus(t("st_loaded").replace("{n}", offers.length) + prov, "ok");
   } catch (err) {
@@ -223,9 +231,6 @@ async function fetchLive(auto) {
   }
 }
 
-// Fusiona las ofertas en vivo dentro de las filas existentes (por nombre de
-// proveedor). Si una oferta no coincide con ninguna fila, la agrega al final.
-function normSup(s) { return (s || "").toLowerCase().replace(/[^a-z0-9]/g, ""); }
 function offerToData(o) {
   return {
     "Part Number": o.partNumber || "", "Mfr": o.mfr || "", "DC": o.dateCode || "",
@@ -235,40 +240,6 @@ function offerToData(o) {
     "Tier": o.tier, "Price": o.price != null ? String(o.price) : "",
     "Currency": o.currency || "", "View": o.url || "",
   };
-}
-function fillRow(tr, o) {
-  const set = (col, val) => {
-    const td = tr.querySelector('td[data-col="' + col + '"]');
-    if (td && td.isContentEditable) td.textContent = val;
-  };
-  if (o.mfr) set("Mfr", o.mfr);
-  if (o.dateCode) set("DC", o.dateCode);
-  if (o.description) set("Description", o.description);
-  if (o.coo) set("COO", o.coo);
-  if (o.stock != null) set("Stock / Qty.", String(o.stock));
-  if (o.tariffCost) set("Tariff Cost", o.tariffCost);
-  if (o.price != null) set("Price", String(o.price));
-  if (o.currency) set("Currency", o.currency);
-  if (o.url) {
-    const a = tr.querySelector("a.view-btn");
-    if (a) a.href = o.url;
-  }
-  tr.classList.add("live-filled");
-}
-function overlayOffers(offers) {
-  const rows = [...document.querySelectorAll("#resultsBody tr")]
-    .filter((r) => !r.classList.contains("empty-row"));
-  const used = new Set();
-  offers.forEach((o) => {
-    const on = normSup(o.supplier);
-    const target = rows.find((r) => {
-      if (used.has(r)) return false;
-      const rn = normSup(r.querySelector('td[data-col="Supplier Name"]')?.textContent);
-      return rn && on && (rn.includes(on) || on.includes(rn));
-    });
-    if (target) { used.add(target); fillRow(target, o); }
-    else addRow(offerToData(o));
-  });
 }
 
 /* ---------- Google Dorks ---------- */
