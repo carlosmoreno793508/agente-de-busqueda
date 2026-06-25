@@ -275,6 +275,7 @@ function doSearch() {
     fillFromPlatforms(pns);
     // Si hay backend configurado, superpone stock/precio reales automáticamente.
     if (document.getElementById("backendUrl").value.trim()) fetchLive(true);
+    else setLiveStatus(t("connect_hint"), "info");
   }
   if (document.getElementById("openAll").checked) {
     const pn = parsePartNumbers(document.getElementById("partInput").value)[0];
@@ -326,4 +327,6 @@ document.addEventListener("DOMContentLoaded", () => {
   backendInput.addEventListener("input", () => {
     try { localStorage.setItem("cs_backend", backendInput.value.trim()); } catch (e) {}
   });
+  // Aviso inicial si aún no hay fuente de datos conectada.
+  if (!backendInput.value.trim()) setLiveStatus(t("connect_hint"), "info");
 });

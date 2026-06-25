@@ -49,6 +49,7 @@ const I18N = {
     st_error_tail: ". Verifica que el proxy esté corriendo y la URL sea correcta.",
     alert_openall: "Se abrieron las primeras 12 plataformas (límite para no saturar el navegador). Usa los botones para abrir el resto.",
     alert_noexport: "No hay filas para exportar.",
+    connect_hint: "ℹ️ Las columnas Stock, Price, Mfr y DC están vacías porque aún no conectas una fuente de datos. Pega arriba la URL de tu backend (Mouser o Nexar) y se llenarán solas en cada búsqueda. Sin backend, usa el botón View para ir al proveedor. Cómo activarlo: ver “Deploy” en el README del repo.",
   },
 
   en: {
@@ -99,6 +100,7 @@ const I18N = {
     st_error_tail: ". Check the proxy is running and the URL is correct.",
     alert_openall: "Opened the first 12 platforms (limit to avoid flooding the browser). Use the buttons to open the rest.",
     alert_noexport: "No rows to export.",
+    connect_hint: "ℹ️ The Stock, Price, Mfr and DC columns are empty because no data source is connected yet. Paste your backend URL above (Mouser or Nexar) and they fill automatically on each search. Without a backend, use the View button to open the supplier. How to enable it: see “Deploy” in the repo README.",
   },
 };
 
