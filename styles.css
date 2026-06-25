@@ -172,6 +172,8 @@ tbody td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-a
 tbody td[contenteditable] { cursor: text; }
 tbody td[contenteditable]:focus { outline: 1px solid var(--accent); border-radius: 4px; }
 tbody tr:hover { background: rgba(47,129,247,0.06); }
+tbody tr.live-filled td { background: rgba(63,185,80,0.08); }
+tbody tr.live-filled:hover td { background: rgba(63,185,80,0.13); }
 .empty-row td { text-align: center; color: var(--muted); padding: 22px; }
 
 .view-btn {

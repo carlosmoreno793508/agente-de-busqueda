@@ -131,12 +131,13 @@ async function searchNexar(parts) {
 async function searchMouser(parts) {
   let all = [];
   for (const p of parts) {
+    // Búsqueda por palabra clave (más tolerante que partnumber exacto).
     const res = await fetch(
-      "https://api.mouser.com/api/v1/search/partnumber?apiKey=" + encodeURIComponent(MOUSER_KEY),
+      "https://api.mouser.com/api/v1/search/keyword?apiKey=" + encodeURIComponent(MOUSER_KEY),
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ SearchByPartRequest: { mouserPartNumber: p } }),
+        body: JSON.stringify({ SearchByKeywordRequest: { keyword: p, records: 8, startingRecord: 0 } }),
       }
     );
     if (!res.ok) throw new Error("Mouser API falló: HTTP " + res.status);
