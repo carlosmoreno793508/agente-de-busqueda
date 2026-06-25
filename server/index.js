@@ -30,8 +30,11 @@ const PORT = process.env.PORT || 8787;
 const NEXAR_ID = process.env.NEXAR_CLIENT_ID;
 const NEXAR_SECRET = process.env.NEXAR_CLIENT_SECRET;
 const MOUSER_KEY = process.env.MOUSER_API_KEY;
+const OEM_KEY = process.env.OEMSECRETS_API_KEY;
 
+// Prioridad: OEMsecrets (agregador gratis) > Nexar > Mouser.
 function provider() {
+  if (OEM_KEY) return "oemsecrets";
   if (NEXAR_ID && NEXAR_SECRET) return "nexar";
   if (MOUSER_KEY) return "mouser";
   return null;
@@ -174,15 +177,71 @@ async function searchMouser(parts) {
   return all;
 }
 
+/* ============================== OEMSECRETS ================================ */
+// Agregador gratuito (150+ distribuidores). Mapeo defensivo: probamos varios
+// nombres de campo porque la respuesta puede variar; se afina con una key real.
+async function searchOemsecrets(parts) {
+  let all = [];
+  for (const p of parts) {
+    const url = "https://oemsecretsapi.com/partsearch?apiKey=" + encodeURIComponent(OEM_KEY) +
+      "&searchTerm=" + encodeURIComponent(p) + "&currency=USD";
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("OEMsecrets API falló: HTTP " + res.status);
+    const json = await res.json();
+    const items = json.stock || json.response || json.data || json.results || [];
+    for (const it of items) {
+      const supplierName =
+        it.distributor?.distributor_name || it.distributor_name || it.distributor || "";
+      // Precios: puede venir como {USD:[{unit_price}]} o como arreglo.
+      let breaks = [], currency = "USD";
+      const pr = it.prices || it.price || {};
+      if (Array.isArray(pr)) breaks = pr;
+      else if (pr && typeof pr === "object") {
+        currency = pr.USD ? "USD" : (Object.keys(pr)[0] || "USD");
+        breaks = pr[currency] || [];
+      }
+      let price = null;
+      if (Array.isArray(breaks) && breaks.length) {
+        price = breaks.reduce((min, b) => {
+          const v = parseFloat(String(b.unit_price ?? b.price ?? b.unitPrice).replace(/[^0-9.]/g, ""));
+          return (min == null || (Number.isFinite(v) && v < min)) ? v : min;
+        }, null);
+      }
+      const stockRaw = it.stock ?? it.quantity_in_stock ?? it.total_avl ?? it.availability ?? null;
+      const stockNum = stockRaw != null ? parseInt(String(stockRaw).replace(/[^0-9]/g, ""), 10) : null;
+      const tier = classifySupplier(supplierName).tier;
+      all.push({
+        partNumber: it.part_number || it.manufacturer_part_number || p,
+        mfr: it.manufacturer || "",
+        dateCode: "",
+        description: it.description || "",
+        coo: "",
+        stock: Number.isFinite(stockNum) ? stockNum : null,
+        tariffCost: "",
+        supplier: supplierName,
+        tier,
+        authorized: tier === "franquiciado",
+        price,
+        currency: currency || it.currency || "USD",
+        url: it.buy_now_url || it.url || it.distributor?.url || "",
+      });
+    }
+  }
+  return all;
+}
+
 /* ================================ API ==================================== */
 app.get("/api/search", async (req, res) => {
   const q = (req.query.q || "").toString().trim();
   if (!q) return res.status(400).json({ error: "Falta el parámetro q (Part Number)." });
   const p = provider();
-  if (!p) return res.status(503).json({ error: "Sin credenciales: configura NEXAR_CLIENT_ID/SECRET o MOUSER_API_KEY." });
+  if (!p) return res.status(503).json({ error: "Sin credenciales: configura OEMSECRETS_API_KEY, NEXAR_CLIENT_ID/SECRET o MOUSER_API_KEY." });
   try {
     const parts = q.split(",").map((s) => s.trim()).filter(Boolean);
-    const offers = p === "nexar" ? await searchNexar(parts) : await searchMouser(parts);
+    const offers =
+      p === "oemsecrets" ? await searchOemsecrets(parts) :
+      p === "nexar" ? await searchNexar(parts) :
+      await searchMouser(parts);
     // Autorizados primero, luego por mayor stock.
     offers.sort((a, b) => (b.authorized - a.authorized) || ((b.stock || 0) - (a.stock || 0)));
     // Limitamos a las más relevantes para una tabla manejable.
