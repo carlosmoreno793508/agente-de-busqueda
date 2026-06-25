@@ -223,7 +223,6 @@ async function fetchLive(auto) {
     if (!res.ok) throw new Error("HTTP " + res.status);
     const data = await res.json();
     const offers = data.offers || [];
-    if (!offers.length) { setLiveStatus(t("st_none"), "warn"); return; }
 
     // Con datos en vivo, mostramos directo las ofertas reales (ordenadas por el
     // backend: autorizados primero, luego por stock), en vez de las filas de
@@ -234,11 +233,38 @@ async function fetchLive(auto) {
       const tr = addRow(offerToData(o));
       tr.classList.add("live-filled");
     });
+
+    // Marca como "No encontrado" cada Part Number buscado que no tuvo ninguna
+    // oferta (p. ej. por un espacio/carácter de más). Compara ignorando
+    // espacios y símbolos.
+    const norm = (s) => String(s || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+    const foundNorm = offers.map((o) => norm(o.partNumber));
+    const notFound = pns.filter((pn) => {
+      const n = norm(pn);
+      return n && !foundNorm.some((f) => f && (f.includes(n) || n.includes(f)));
+    });
+    notFound.forEach(addNotFoundRow);
+    if (!body.children.length) renderEmpty();
+
     const prov = data.provider ? " (" + data.provider + ")" : "";
-    setLiveStatus(t("st_loaded").replace("{n}", offers.length) + prov, "ok");
+    if (offers.length) {
+      setLiveStatus(t("st_loaded").replace("{n}", offers.length) + prov +
+        (notFound.length ? " · " + t("st_notfound_n").replace("{n}", notFound.length) : ""), "ok");
+    } else {
+      setLiveStatus(t("st_none"), "warn");
+    }
   } catch (err) {
     setLiveStatus(t("st_error") + err.message + t("st_error_tail"), "warn");
   }
+}
+
+// Fila roja "No encontrado" para un Part Number sin resultados.
+function addNotFoundRow(pn) {
+  const tr = addRow({ "Part Number": pn, "Description": t("not_found_hint"), "Supplier Name": "—" });
+  tr.classList.add("not-found");
+  const tipo = tr.querySelector('td[data-col="Tipo"]');
+  if (tipo) tipo.innerHTML = '<span class="tier-badge tier-error">' + t("not_found") + "</span>";
+  return tr;
 }
 
 function offerToData(o) {
