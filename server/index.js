@@ -147,18 +147,23 @@ async function searchMouser(parts) {
         const val = parseFloat(String(pb.Price).replace(/[^0-9.]/g, ""));
         return (min == null || val < min.val) ? { val, currency: pb.Currency } : min;
       }, null);
-      const stockNum = parseInt(String(it.Availability || "").replace(/[^0-9]/g, ""), 10);
+      // Stock: AvailabilityInStock es el número limpio; si no, parseamos
+      // Availability ("100 In Stock") o FactoryStock como respaldo.
+      const stockRaw = it.AvailabilityInStock || it.Availability || it.FactoryStock || "";
+      const stockNum = parseInt(String(stockRaw).replace(/[^0-9]/g, ""), 10);
       all.push({
         partNumber: it.ManufacturerPartNumber || p,
-        mfr: it.Manufacturer || "",
+        mfr: it.Manufacturer || it.ActualMfrName || "",
         dateCode: "",
         description: it.Description || "",
-        coo: it.CountryOfOrigin || "",
+        coo: "",
         stock: Number.isFinite(stockNum) ? stockNum : null,
         tariffCost: "",
         supplier: "Mouser Electronics",
         tier: "franquiciado",
         authorized: true,
+        leadTime: it.LeadTime || "",
+        lifecycle: it.LifecycleStatus || "",
         price: lowest ? lowest.val : null,
         currency: lowest ? lowest.currency : "",
         url: it.ProductDetailUrl || "",
