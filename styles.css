@@ -94,6 +94,18 @@ h2 { margin: 0 0 6px; font-size: 17px; }
   cursor: pointer;
 }
 #searchBtn:hover { filter: brightness(1.1); }
+.file-btn {
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 0 18px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.file-btn:hover { border-color: var(--accent); color: var(--accent); }
 
 .filter-row { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 14px; font-size: 13px; color: var(--muted); }
 .filter-row label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
