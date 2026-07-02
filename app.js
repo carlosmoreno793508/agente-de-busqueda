@@ -13,7 +13,7 @@ const LAYOUT = [
   { key: "Tipo",         type: "tier" },
   { key: "Price",        type: "edit" },
   { key: "Currency",     type: "edit" },
-  { key: "Peso unit. (kg)", type: "edit" },
+  { key: "Peso unit. (mg)", type: "edit" },
   { key: "View",         type: "view" },
 ];
 const COL_COUNT = LAYOUT.length;
@@ -268,6 +268,12 @@ function addNotFoundRow(pn) {
   return tr;
 }
 
+// Convierte kg -> mg como texto legible (sin notación científica).
+function kgToMgStr(kg) {
+  if (kg == null || !isFinite(kg)) return "";
+  return (kg * 1e6).toFixed(4).replace(/\.?0+$/, "");
+}
+
 function offerToData(o) {
   return {
     "Part Number": o.partNumber || "", "Mfr": o.mfr || "", "DC": o.dateCode || "",
@@ -276,7 +282,7 @@ function offerToData(o) {
     "Tariff Cost": o.tariffCost || "", "Supplier Name": o.supplier || "",
     "Tier": o.tier, "Price": o.price != null ? String(o.price) : "",
     "Currency": o.currency || "",
-    "Peso unit. (kg)": o.weightKg != null ? String(o.weightKg) : "",
+    "Peso unit. (mg)": o.weightKg != null ? kgToMgStr(o.weightKg) : "",
     "View": o.url || "",
   };
 }
@@ -455,7 +461,7 @@ function setWtStatus(msg, kind) {
 }
 function addWtRow(pn, mfr, w) {
   const tr = document.createElement("tr");
-  [pn, mfr || "—", w != null ? String(w) : "—"].forEach((c) => {
+  [pn, mfr || "—", w != null ? kgToMgStr(w) : "—"].forEach((c) => {
     const td = document.createElement("td");
     td.textContent = c;
     tr.appendChild(td);
@@ -504,7 +510,7 @@ async function doWeightSearch() {
 function exportWt() {
   const rows = [...document.querySelectorAll("#wtBody tr")];
   if (!rows.length) { alert(t("alert_noexport")); return; }
-  const lines = ["Part Number,Mfr,Peso unit. (kg)"];
+  const lines = ["Part Number,Mfr,Peso unit. (mg)"];
   rows.forEach((tr) => {
     const c = [...tr.querySelectorAll("td")];
     lines.push([c[0], c[1], c[2]].map((x) => csvCell(x.textContent)).join(","));
