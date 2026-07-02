@@ -229,11 +229,11 @@ tbody tr.not-found td { background: rgba(248,81,73,0.07); color: var(--muted); }
 }
 .wt-input:focus { outline: none; border-color: var(--accent); }
 .wt-actions { display: flex; gap: 8px; margin-bottom: 12px; }
-#wtBtn {
+#wtBtn, #htmlBtn {
   background: var(--accent); color: #fff; border: none;
   padding: 8px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;
 }
-#wtBtn:hover { filter: brightness(1.1); }
+#wtBtn:hover, #htmlBtn:hover { filter: brightness(1.1); }
 #wtTable { min-width: 520px; }
 
 /* ---- enlaces por continente ---- */

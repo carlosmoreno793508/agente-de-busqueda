@@ -503,6 +503,77 @@ function exportWt() {
   URL.revokeObjectURL(a.href);
 }
 
+/* ---------- Pegar HTML (Mouser) — extracción sin API ---------- */
+function weightStrToKg(str) {
+  const s = String(str || "").toLowerCase();
+  const n = parseFloat(s.replace(/[^0-9.]/g, ""));
+  if (!isFinite(n) || n <= 0) return null;
+  if (s.includes("kg")) return n;
+  if (s.includes("mg")) return n / 1e6;
+  if (s.includes("oz")) return n * 0.0283495;
+  if (s.includes("lb")) return n * 0.453592;
+  if (s.includes("g")) return n / 1000;
+  return null;
+}
+function parseMouserHtml(html) {
+  const raw = String(html || "");
+  const o = {
+    partNumber: "", mfr: "", description: "", coo: "", stock: null,
+    tariffCost: "", price: null, currency: "", weightKg: null,
+    supplier: "Mouser Electronics", tier: "franquiciado", authorized: true, url: "",
+  };
+  // 1) JSON-LD Product (lo más confiable) vía DOMParser.
+  try {
+    const doc = new DOMParser().parseFromString(raw, "text/html");
+    doc.querySelectorAll('script[type="application/ld+json"]').forEach((s) => {
+      try {
+        const j = JSON.parse(s.textContent.trim());
+        if (j && j["@type"] === "Product") {
+          o.partNumber = j.mpn || o.partNumber;
+          o.mfr = j.brand || o.mfr;
+          o.description = j.description || o.description;
+          const of = j.offers || {};
+          if (of.price != null) o.price = parseFloat(of.price);
+          if (of.priceCurrency) o.currency = of.priceCurrency;
+          if (of.inventoryLevel != null) o.stock = parseInt(String(of.inventoryLevel).replace(/[^0-9]/g, ""), 10);
+          if (of.url) o.url = of.url;
+        }
+      } catch (e) {}
+    });
+    const dsc = doc.querySelector("#spnDescription"); if (dsc) o.description = dsc.textContent.trim();
+    const mp = doc.querySelector("#spnManufacturerPartNumber"); if (mp && !o.partNumber) o.partNumber = mp.textContent.trim();
+    doc.querySelectorAll(".specs-table tr, table.specs-table tr").forEach((tr) => {
+      const tds = tr.querySelectorAll("td");
+      if (tds.length < 2) return;
+      if ((tds[0].textContent || "").trim().toLowerCase().indexOf("unit weight") > -1) {
+        const w = weightStrToKg(tds[1].textContent); if (w) o.weightKg = w;
+      }
+    });
+  } catch (e) {}
+  // 2) Respaldos por regex (si pegaron texto plano o faltó algo).
+  const m = (re) => { const x = raw.match(re); return x ? x[1] : null; };
+  if (!o.partNumber) o.partNumber = (m(/"mpn"\s*:\s*"([^"]+)"/) || "").trim();
+  if (!o.mfr) o.mfr = (m(/"brand"\s*:\s*"([^"]+)"/) || "").trim();
+  if (o.price == null) { const p = m(/"price"\s*:\s*"?([\d.]+)"?/); if (p) o.price = parseFloat(p); }
+  if (!o.currency) o.currency = m(/"priceCurrency"\s*:\s*"([^"]+)"/) || "USD";
+  if (o.stock == null) { const s = m(/"inventoryLevel"\s*:\s*"?([\d,]+)"?/) || m(/In Stock:\s*([\d,]+)/i); if (s) o.stock = parseInt(s.replace(/[^0-9]/g, ""), 10); }
+  if (o.weightKg == null) { const w = m(/unit weight[\s\S]{0,120}?([0-9.]+\s*(?:oz|mg|kg|lb|g))/i); if (w) o.weightKg = weightStrToKg(w); }
+  if (!o.coo) { const c = m(/country of origin[\s\S]{0,300}?<dd[^>]*>\s*([^<]+?)\s*<\/dd>/i); if (c) o.coo = c.trim(); }
+  return (o.partNumber || o.price != null || o.weightKg != null) ? o : null;
+}
+function doPasteHtml() {
+  const el = document.getElementById("htmlStatus");
+  const set = (msg, k) => { el.hidden = false; el.className = "live-status " + (k || ""); el.textContent = msg; };
+  const html = document.getElementById("htmlInput").value;
+  if (!html.trim()) { set(t("ph_fail"), "warn"); return; }
+  const o = parseMouserHtml(html);
+  if (!o) { set(t("ph_fail"), "warn"); return; }
+  const tr = addRow(offerToData(o));
+  tr.classList.add("live-filled");
+  set(t("ph_ok"), "ok");
+  document.getElementById("htmlInput").value = "";
+}
+
 /* ---------- init ---------- */
 // Re-render del contenido dinámico cuando cambia el idioma.
 window.onLangChange = () => {
@@ -527,6 +598,9 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("addRowBtn").addEventListener("click", () => addRow());
   document.getElementById("exportBtn").addEventListener("click", exportCSV);
   document.getElementById("fetchLiveBtn").addEventListener("click", () => fetchLive(false));
+
+  // Pegar HTML (Mouser) — extracción sin API.
+  document.getElementById("htmlBtn").addEventListener("click", doPasteHtml);
 
   // Subir archivo(s) con part numbers.
   const fileInput = document.getElementById("fileInput");
