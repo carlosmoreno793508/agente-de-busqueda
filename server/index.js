@@ -274,8 +274,10 @@ app.get("/api/search", async (req, res) => {
     }
     // Autorizados primero, luego por mayor stock.
     offers.sort((a, b) => (b.authorized - a.authorized) || ((b.stock || 0) - (a.stock || 0)));
-    // Limitamos a las más relevantes para una tabla manejable.
-    const top = offers.slice(0, 60);
+    // Cap escalable: en búsqueda de 1 pieza limita ofertas; en masivo (muchas
+    // piezas) permite ~8 por pieza para no truncar la lista. Tope duro 800.
+    const cap = Math.min(800, Math.max(80, parts.length * 8));
+    const top = offers.slice(0, cap);
     res.json({ provider: used, count: top.length, total: offers.length, offers: top });
   } catch (err) {
     res.status(502).json({ error: err.message });
