@@ -373,12 +373,62 @@ function doSearch() {
   document.getElementById("partInput").value = "";
 }
 
+/* ---------- herramientas: convertidores ---------- */
+function fmtNum(n) {
+  if (!isFinite(n)) return "—";
+  return n.toLocaleString(LANG === "en" ? "en-US" : "es-MX",
+    { maximumFractionDigits: 6, minimumFractionDigits: 0 });
+}
+
+function convertWeight() {
+  const v = parseFloat(document.getElementById("wIn").value);
+  const from = parseFloat(document.getElementById("wFrom").value);
+  const to = parseFloat(document.getElementById("wTo").value);
+  const out = document.getElementById("wResult");
+  if (!isFinite(v)) { out.textContent = "—"; return; }
+  const grams = v * from;
+  const res = grams / to;
+  const uFrom = document.getElementById("wFrom").selectedOptions[0].textContent;
+  const uTo = document.getElementById("wTo").selectedOptions[0].textContent;
+  out.textContent = `${fmtNum(v)} ${uFrom} = ${fmtNum(res)} ${uTo}`;
+}
+
+// Tipo de cambio: base USD desde frankfurter.app (gratis, sin key, CORS ok).
+let FX = null;
+async function loadFX() {
+  try {
+    const res = await fetch("https://api.frankfurter.app/latest?from=USD&to=MXN,EUR,GBP,CNY,JPY");
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    FX = Object.assign({ USD: 1 }, data.rates || {});
+    FX._date = data.date || "";
+  } catch (e) {
+    FX = null;
+  }
+  convertCurrency();
+}
+function convertCurrency() {
+  const v = parseFloat(document.getElementById("cIn").value);
+  const from = document.getElementById("cFrom").value;
+  const to = document.getElementById("cTo").value;
+  const out = document.getElementById("cResult");
+  const rateEl = document.getElementById("cRate");
+  if (!FX) { out.textContent = "—"; rateEl.textContent = t("conv_rate_fail"); return; }
+  if (!isFinite(v) || !FX[from] || !FX[to]) { out.textContent = "—"; return; }
+  const usd = v / FX[from];
+  const res = usd * FX[to];
+  out.textContent = `${fmtNum(v)} ${from} = ${fmtNum(res)} ${to}`;
+  const oneRate = FX[to] / FX[from];
+  rateEl.textContent = `1 ${from} = ${fmtNum(oneRate)} ${to} · ${t("conv_rate_note")}${FX._date ? " " + FX._date : ""}`;
+}
+
 /* ---------- init ---------- */
 // Re-render del contenido dinámico cuando cambia el idioma.
 window.onLangChange = () => {
   renderLinks();
   renderDorks();
   if (document.querySelector("#resultsBody .empty-row")) renderEmpty();
+  if (typeof convertWeight === "function") { convertWeight(); convertCurrency(); }
 };
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -418,4 +468,12 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   // Aviso inicial si aún no hay fuente de datos conectada.
   if (!backendInput.value.trim()) setLiveStatus(t("connect_hint"), "info");
+
+  // Convertidores.
+  ["wIn", "wFrom", "wTo"].forEach((id) =>
+    document.getElementById(id).addEventListener("input", convertWeight));
+  ["cIn", "cFrom", "cTo"].forEach((id) =>
+    document.getElementById(id).addEventListener("input", convertCurrency));
+  convertWeight();
+  loadFX();
 });

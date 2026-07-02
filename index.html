@@ -90,6 +90,65 @@
       </div>
     </section>
 
+    <!-- ============ HERRAMIENTAS ============ -->
+    <section class="tools-card">
+      <h2 data-i18n="tools_title">🧮 Herramientas</h2>
+      <div class="tools-grid">
+        <!-- Convertidor de peso -->
+        <div class="tool">
+          <h3 data-i18n="conv_weight_title">Convertidor de peso</h3>
+          <div class="conv-row">
+            <input id="wIn" type="number" step="any" value="1" />
+            <select id="wFrom">
+              <option value="0.001">mg</option>
+              <option value="1" selected>g</option>
+              <option value="1000">kg</option>
+              <option value="1000000">ton</option>
+              <option value="28.3495">oz</option>
+              <option value="453.592">lb</option>
+            </select>
+            <span class="conv-eq">→</span>
+            <select id="wTo">
+              <option value="0.001">mg</option>
+              <option value="1">g</option>
+              <option value="1000" selected>kg</option>
+              <option value="1000000">ton</option>
+              <option value="28.3495">oz</option>
+              <option value="453.592">lb</option>
+            </select>
+          </div>
+          <div id="wResult" class="conv-result">—</div>
+        </div>
+
+        <!-- Convertidor de moneda -->
+        <div class="tool">
+          <h3 data-i18n="conv_cur_title">Convertidor de moneda (precio por pieza)</h3>
+          <div class="conv-row">
+            <input id="cIn" type="number" step="any" value="1" />
+            <select id="cFrom">
+              <option value="USD" selected>USD</option>
+              <option value="MXN">MXN</option>
+              <option value="EUR">EUR</option>
+              <option value="GBP">GBP</option>
+              <option value="CNY">CNY</option>
+              <option value="JPY">JPY</option>
+            </select>
+            <span class="conv-eq">→</span>
+            <select id="cTo">
+              <option value="USD">USD</option>
+              <option value="MXN" selected>MXN</option>
+              <option value="EUR">EUR</option>
+              <option value="GBP">GBP</option>
+              <option value="CNY">CNY</option>
+              <option value="JPY">JPY</option>
+            </select>
+          </div>
+          <div id="cResult" class="conv-result">—</div>
+          <div id="cRate" class="conv-rate"></div>
+        </div>
+      </div>
+    </section>
+
     <!-- ============ ENLACES POR CONTINENTE ============ -->
     <section class="links-card">
       <h2 data-i18n="links_title">Enlaces de búsqueda directa por continente</h2>
