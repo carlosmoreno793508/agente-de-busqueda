@@ -142,6 +142,27 @@ async function searchNexar(parts) {
 }
 
 /* ================================ MOUSER ================================== */
+// Convierte "0.000194 oz" / "1.2 g" / "500 mg" / "0.03 kg" a kg.
+function parseWeightToKg(str) {
+  const s = String(str || "").toLowerCase();
+  const num = parseFloat(s.replace(/[^0-9.]/g, ""));
+  if (!isFinite(num) || num <= 0) return null;
+  if (s.includes("kg")) return num;
+  if (s.includes("mg")) return num / 1e6;
+  if (s.includes("oz")) return num * 0.0283495;
+  if (s.includes("lb")) return num * 0.453592;
+  if (s.includes("g")) return num / 1000; // gramos (tras descartar kg/mg)
+  return null;
+}
+// Peso unitario en kg desde Mouser: campo directo, o atributo "Unit Weight".
+function mouserWeightKg(it) {
+  const direct = it.UnitWeightKg?.UnitWeight ?? it.UnitWeightKg ?? null;
+  if (direct != null && parseFloat(direct) > 0) return parseFloat(direct);
+  const wa = (it.ProductAttributes || []).find((a) => /weight/i.test(a.AttributeName || ""));
+  if (wa && wa.AttributeValue) return parseWeightToKg(wa.AttributeValue);
+  return null;
+}
+
 async function searchMouser(parts) {
   let all = [];
   for (const p of parts) {
@@ -170,9 +191,8 @@ async function searchMouser(parts) {
       // Availability ("100 In Stock") o FactoryStock como respaldo.
       const stockRaw = it.AvailabilityInStock || it.Availability || it.FactoryStock || "";
       const stockNum = parseInt(String(stockRaw).replace(/[^0-9]/g, ""), 10);
-      // Peso unitario en kg (Mouser lo expone directo en UnitWeightKg.UnitWeight).
-      const wRaw = it.UnitWeightKg?.UnitWeight ?? it.UnitWeightKg ?? null;
-      const weightKg = (wRaw != null && parseFloat(wRaw) > 0) ? parseFloat(wRaw) : null;
+      // Peso unitario en kg: campo directo o atributo "Unit Weight" (oz/g/mg).
+      const weightKg = mouserWeightKg(it);
       all.push({
         partNumber: it.ManufacturerPartNumber || p,
         mfr: it.Manufacturer || it.ActualMfrName || "",
