@@ -156,6 +156,10 @@ async function searchMouser(parts) {
     );
     if (!res.ok) throw new Error("Mouser API falló: HTTP " + res.status);
     const json = await res.json();
+    // Mouser reporta errores en el cuerpo con status 200 (p. ej. key inválida).
+    if (json?.Errors?.length) {
+      throw new Error("Mouser: " + json.Errors.map((e) => e.Message || e.Code).join("; "));
+    }
     const items = json?.SearchResults?.Parts || [];
     for (const it of items) {
       const lowest = (it.PriceBreaks || []).reduce((min, pb) => {
@@ -281,6 +285,27 @@ app.get("/api/search", async (req, res) => {
     res.json({ provider: used, count: top.length, total: offers.length, offers: top });
   } catch (err) {
     res.status(502).json({ error: err.message });
+  }
+});
+
+// Diagnóstico: devuelve la respuesta CRUDA de Mouser (status + cuerpo) para ver
+// errores de key/formato. No expone la API key.
+app.get("/api/raw", async (req, res) => {
+  const q = (req.query.q || "NE555").toString();
+  if (!MOUSER_KEY) return res.json({ note: "Sin MOUSER_API_KEY" });
+  try {
+    const r = await fetch(
+      "https://api.mouser.com/api/v1/search/keyword?apiKey=" + encodeURIComponent(MOUSER_KEY),
+      { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ SearchByKeywordRequest: { keyword: q, records: 3, startingRecord: 0 } }) }
+    );
+    const text = await r.text();
+    let body; try { body = JSON.parse(text); } catch { body = text.slice(0, 500); }
+    res.json({ mouserStatus: r.status, errors: body?.Errors || null,
+      numberOfResults: body?.SearchResults?.NumberOfResult ?? null,
+      firstPart: body?.SearchResults?.Parts?.[0] || null });
+  } catch (e) {
+    res.status(502).json({ error: e.message });
   }
 });
 
