@@ -251,17 +251,31 @@ app.get("/api/search", async (req, res) => {
   if (!q) return res.status(400).json({ error: "Falta el parámetro q (Part Number)." });
   const p = provider();
   if (!p) return res.status(503).json({ error: "Sin credenciales: configura OEMSECRETS_API_KEY, NEXAR_CLIENT_ID/SECRET o MOUSER_API_KEY." });
+  const parts = q.split(",").map((s) => s.trim()).filter(Boolean);
+  const run = (name) =>
+    name === "oemsecrets" ? searchOemsecrets(parts) :
+    name === "nexar" ? searchNexar(parts) :
+    searchMouser(parts);
   try {
-    const parts = q.split(",").map((s) => s.trim()).filter(Boolean);
-    const offers =
-      p === "oemsecrets" ? await searchOemsecrets(parts) :
-      p === "nexar" ? await searchNexar(parts) :
-      await searchMouser(parts);
+    let used = p;
+    let offers;
+    try {
+      offers = await run(p);
+    } catch (primaryErr) {
+      // Si el proveedor principal falla (p. ej. Nexar sin crédito) y hay Mouser,
+      // caemos automáticamente a Mouser.
+      if (p !== "mouser" && MOUSER_KEY) {
+        used = "mouser";
+        offers = await searchMouser(parts);
+      } else {
+        throw primaryErr;
+      }
+    }
     // Autorizados primero, luego por mayor stock.
     offers.sort((a, b) => (b.authorized - a.authorized) || ((b.stock || 0) - (a.stock || 0)));
     // Limitamos a las más relevantes para una tabla manejable.
     const top = offers.slice(0, 60);
-    res.json({ provider: p, count: top.length, total: offers.length, offers: top });
+    res.json({ provider: used, count: top.length, total: offers.length, offers: top });
   } catch (err) {
     res.status(502).json({ error: err.message });
   }
