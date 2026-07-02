@@ -316,13 +316,27 @@ function renderDorks() {
 // Extrae part numbers de texto: una línea = un PN; si la línea es CSV/TSV toma
 // la primera columna; ignora encabezados comunes.
 function extractPNsFromText(text) {
+  const lines = String(text || "").split(/\r?\n/).filter((l) => l.trim() !== "");
+  if (!lines.length) return [];
+  const splitRow = (l) => l.split(/[,;\t]/).map((s) => s.trim().replace(/^["']|["']$/g, ""));
   const out = [];
-  String(text || "").split(/\r?\n/).forEach((line) => {
-    const first = line.split(/[,;\t]/)[0].trim().replace(/^["']|["']$/g, "");
-    if (!first) return;
-    if (/^(part\s*number|part\s*no\.?|mpn|number|p\/n|sku)$/i.test(first)) return;
-    out.push(first);
-  });
+  // 1) Si hay encabezado con una columna tipo MPN/Part Number, usar esa columna.
+  const header = splitRow(lines[0]).map((h) => h.toLowerCase());
+  const mpnIdx = header.findIndex((h) => /mpn|part\s*number|part\s*no|p\/n|manufacturer\s*part/.test(h));
+  if (mpnIdx > -1) {
+    for (let i = 1; i < lines.length; i++) {
+      const pn = (splitRow(lines[i])[mpnIdx] || "").trim();
+      if (pn) out.push(pn);
+    }
+    return out;
+  }
+  // 2) Sin encabezado reconocible: primera celda NO vacía de cada línea.
+  for (const line of lines) {
+    const cells = splitRow(line);
+    const pn = (cells.find((c) => c) || "").trim();
+    if (!pn || /^(part\s*number|part\s*no\.?|mpn|number|p\/n|sku)$/i.test(pn)) continue;
+    out.push(pn);
+  }
   return out;
 }
 function handleFiles(files) {

@@ -165,7 +165,9 @@ function mouserWeightKg(it) {
 
 async function searchMouser(parts) {
   let all = [];
+  let firstErr = null, okCount = 0;
   for (const p of parts) {
+   try {
     // Búsqueda por palabra clave (más tolerante que partnumber exacto).
     const res = await fetch(
       "https://api.mouser.com/api/v1/search/keyword?apiKey=" + encodeURIComponent(MOUSER_KEY),
@@ -212,7 +214,11 @@ async function searchMouser(parts) {
         url: it.ProductDetailUrl || "",
       });
     }
+    okCount++;
+   } catch (e) { if (!firstErr) firstErr = e; }
   }
+  // Si NINGUNA pieza tuvo éxito, propaga el error (p. ej. key inválida).
+  if (okCount === 0 && firstErr) throw firstErr;
   return all;
 }
 
