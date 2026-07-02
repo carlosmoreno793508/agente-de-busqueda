@@ -74,6 +74,7 @@ const SEARCH_QUERY = `
           mpn
           manufacturer { name }
           shortDescription
+          specs { attribute { shortname } value units siValue siUnits }
           sellers {
             company { name }
             isAuthorized
@@ -102,6 +103,15 @@ async function searchNexar(parts) {
     for (const r of results) {
       const part = r.part || {};
       const mfr = part.manufacturer?.name || "";
+      // Peso unitario: spec "weight"; usamos el valor SI (kg) si viene así.
+      let weightKg = null;
+      const wspec = (part.specs || []).find((s) => s.attribute?.shortname === "weight");
+      if (wspec) {
+        if (wspec.siUnits === "kg" && wspec.siValue) weightKg = parseFloat(wspec.siValue);
+        else if (wspec.units === "g" && wspec.value) weightKg = parseFloat(wspec.value) / 1000;
+        else if (wspec.units === "mg" && wspec.value) weightKg = parseFloat(wspec.value) / 1e6;
+      }
+      if (!(weightKg > 0)) weightKg = null;
       for (const seller of part.sellers || []) {
         const supplierName = seller.company?.name || "";
         const tier = seller.isAuthorized ? "franquiciado" : classifySupplier(supplierName).tier;
@@ -119,6 +129,7 @@ async function searchNexar(parts) {
             supplier: supplierName,
             tier,
             authorized: !!seller.isAuthorized,
+            weightKg,
             price: lowest ? lowest.price : null,
             currency: lowest ? lowest.currency : "",
             url: offer.clickUrl || "",
@@ -155,6 +166,9 @@ async function searchMouser(parts) {
       // Availability ("100 In Stock") o FactoryStock como respaldo.
       const stockRaw = it.AvailabilityInStock || it.Availability || it.FactoryStock || "";
       const stockNum = parseInt(String(stockRaw).replace(/[^0-9]/g, ""), 10);
+      // Peso unitario en kg (Mouser lo expone directo en UnitWeightKg.UnitWeight).
+      const wRaw = it.UnitWeightKg?.UnitWeight ?? it.UnitWeightKg ?? null;
+      const weightKg = (wRaw != null && parseFloat(wRaw) > 0) ? parseFloat(wRaw) : null;
       all.push({
         partNumber: it.ManufacturerPartNumber || p,
         mfr: it.Manufacturer || it.ActualMfrName || "",
@@ -168,6 +182,7 @@ async function searchMouser(parts) {
         authorized: true,
         leadTime: it.LeadTime || "",
         lifecycle: it.LifecycleStatus || "",
+        weightKg,
         price: lowest ? lowest.val : null,
         currency: lowest ? lowest.currency : "",
         url: it.ProductDetailUrl || "",
