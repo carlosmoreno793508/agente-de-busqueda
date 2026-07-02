@@ -32,11 +32,11 @@ const NEXAR_SECRET = process.env.NEXAR_CLIENT_SECRET;
 const MOUSER_KEY = process.env.MOUSER_API_KEY;
 const OEM_KEY = process.env.OEMSECRETS_API_KEY;
 
-// Prioridad: OEMsecrets (agregador gratis) > Nexar > Mouser.
+// Prioridad: OEMsecrets (agregador gratis) > Mouser (gratis) > Nexar (crédito).
 function provider() {
   if (OEM_KEY) return "oemsecrets";
-  if (NEXAR_ID && NEXAR_SECRET) return "nexar";
   if (MOUSER_KEY) return "mouser";
+  if (NEXAR_ID && NEXAR_SECRET) return "nexar";
   return null;
 }
 
