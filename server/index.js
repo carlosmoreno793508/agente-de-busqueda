@@ -238,7 +238,8 @@ async function searchOemsecrets(parts) {
         authorized: tier === "franquiciado",
         price,
         currency: currency || it.currency || "USD",
-        url: it.buy_now_url || it.url || it.distributor?.url || "",
+        url: it.buy_now_url || it.part_url || it.url || it.distributor?.url ||
+             it.distributor?.buy_now_url || "",
       });
     }
   }
