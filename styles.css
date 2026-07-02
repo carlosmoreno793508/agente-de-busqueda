@@ -220,6 +220,22 @@ tbody tr.not-found td { background: rgba(248,81,73,0.07); color: var(--muted); }
 .conv-rate { margin-top: 4px; font-size: 12px; color: var(--muted); }
 @media (max-width: 640px) { .tools-grid { grid-template-columns: 1fr; } }
 
+/* ---- peso unitario masivo ---- */
+.wt-input {
+  width: 100%; margin: 4px 0 10px; box-sizing: border-box;
+  background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
+  border-radius: 8px; padding: 10px 12px; font-size: 14px; font-family: ui-monospace, Menlo, monospace;
+  resize: vertical;
+}
+.wt-input:focus { outline: none; border-color: var(--accent); }
+.wt-actions { display: flex; gap: 8px; margin-bottom: 12px; }
+#wtBtn {
+  background: var(--accent); color: #fff; border: none;
+  padding: 8px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;
+}
+#wtBtn:hover { filter: brightness(1.1); }
+#wtTable { min-width: 520px; }
+
 /* ---- enlaces por continente ---- */
 .region-group { margin-bottom: 18px; }
 .region-group h3 { font-size: 15px; margin: 0 0 10px; color: var(--text); }

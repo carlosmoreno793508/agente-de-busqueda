@@ -150,6 +150,32 @@
       </div>
     </section>
 
+    <!-- ============ PESO UNITARIO MASIVO ============ -->
+    <section class="tools-card">
+      <h2 data-i18n="wt_title">⚖️ Peso unitario por pieza (masivo)</h2>
+      <p class="hint" data-i18n-html="wt_hint"></p>
+      <textarea id="wtInput" class="wt-input" rows="5" data-i18n-ph="wt_ph"
+        placeholder="NE555P, Texas Instruments&#10;STM32F103C8T6, ST&#10;GRM188R71C104KA01D, Murata"></textarea>
+      <div class="wt-actions">
+        <button id="wtBtn" type="button" data-i18n="wt_btn">Buscar pesos</button>
+        <button id="wtExport" type="button" class="ghost" data-i18n="wt_export">⬇ Exportar CSV</button>
+      </div>
+      <div id="wtStatus" class="live-status" hidden></div>
+      <div class="table-wrap">
+        <table id="wtTable">
+          <thead>
+            <tr>
+              <th data-i18n="wt_th_pn">Part Number</th>
+              <th data-i18n="wt_th_mfr">Mfr</th>
+              <th data-i18n="wt_th_weight">Peso unit. (kg)</th>
+              <th data-i18n="wt_th_status">Estado</th>
+            </tr>
+          </thead>
+          <tbody id="wtBody"></tbody>
+        </table>
+      </div>
+    </section>
+
     <!-- ============ ENLACES POR CONTINENTE ============ -->
     <section class="links-card">
       <h2 data-i18n="links_title">Enlaces de búsqueda directa por continente</h2>

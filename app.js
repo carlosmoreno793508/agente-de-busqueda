@@ -425,6 +425,84 @@ function convertCurrency() {
   rateEl.textContent = `1 ${from} = ${fmtNum(oneRate)} ${to} · ${t("conv_rate_note")}${FX._date ? " " + FX._date : ""}`;
 }
 
+/* ---------- peso unitario masivo ---------- */
+function parseWtLines(text) {
+  return String(text || "").split(/\r?\n/).map((l) => {
+    const parts = l.split(/[,;\t]/).map((s) => s.trim()).filter(Boolean);
+    if (!parts.length) return null;
+    return { mpn: parts[0], mfr: parts[1] || "" };
+  }).filter(Boolean).filter((x) => !/^(part\s*number|mpn|number)$/i.test(x.mpn));
+}
+function setWtStatus(msg, kind) {
+  const el = document.getElementById("wtStatus");
+  el.hidden = false;
+  el.className = "live-status " + (kind || "");
+  el.textContent = msg;
+}
+function addWtRow(pn, mfr, w) {
+  const tr = document.createElement("tr");
+  [pn, mfr || "—", w != null ? String(w) : "—"].forEach((c) => {
+    const td = document.createElement("td");
+    td.textContent = c;
+    tr.appendChild(td);
+  });
+  const st = document.createElement("td");
+  if (w != null) st.innerHTML = '<span class="tier-badge tier-franquiciado">' + t("wt_found") + "</span>";
+  else { st.innerHTML = '<span class="tier-badge tier-error">' + t("wt_nodata") + "</span>"; tr.classList.add("not-found"); }
+  tr.appendChild(st);
+  document.getElementById("wtBody").appendChild(tr);
+}
+async function doWeightSearch() {
+  const backend = document.getElementById("backendUrl").value.trim();
+  if (!backend) { setWtStatus(t("wt_need_backend"), "warn"); return; }
+  const lines = parseWtLines(document.getElementById("wtInput").value);
+  if (!lines.length) { setWtStatus(t("wt_empty"), "warn"); return; }
+  setWtStatus(t("wt_loading"), "loading");
+  try {
+    const mpns = [...new Set(lines.map((l) => l.mpn))];
+    const url = backend.replace(/\/$/, "") + "/api/search?q=" + encodeURIComponent(mpns.join(","));
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    const offers = data.offers || [];
+    const norm = (s) => String(s || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+    document.getElementById("wtBody").innerHTML = "";
+    let found = 0;
+    lines.forEach((line) => {
+      const n = norm(line.mpn), nm = norm(line.mfr);
+      const matches = offers.filter((o) => {
+        const on = norm(o.partNumber);
+        return on && (on.includes(n) || n.includes(on));
+      });
+      let pick = null;
+      if (nm) pick = matches.find((o) => o.weightKg != null && norm(o.mfr).includes(nm)) ||
+                     matches.find((o) => norm(o.mfr).includes(nm));
+      if (!pick) pick = matches.find((o) => o.weightKg != null) || matches[0] || null;
+      const w = pick && pick.weightKg != null ? pick.weightKg : null;
+      if (w != null) found++;
+      addWtRow(line.mpn, (pick && pick.mfr) || line.mfr || "", w);
+    });
+    setWtStatus(t("wt_done").replace("{n}", found).replace("{t}", lines.length), found ? "ok" : "warn");
+  } catch (err) {
+    setWtStatus(t("st_error") + err.message, "warn");
+  }
+}
+function exportWt() {
+  const rows = [...document.querySelectorAll("#wtBody tr")];
+  if (!rows.length) { alert(t("alert_noexport")); return; }
+  const lines = ["Part Number,Mfr,Peso unit. (kg)"];
+  rows.forEach((tr) => {
+    const c = [...tr.querySelectorAll("td")];
+    lines.push([c[0], c[1], c[2]].map((x) => csvCell(x.textContent)).join(","));
+  });
+  const blob = new Blob(["﻿" + lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "pesos_unitarios.csv";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
 /* ---------- init ---------- */
 // Re-render del contenido dinámico cuando cambia el idioma.
 window.onLangChange = () => {
@@ -479,4 +557,8 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById(id).addEventListener("input", convertCurrency));
   convertWeight();
   loadFX();
+
+  // Peso unitario masivo.
+  document.getElementById("wtBtn").addEventListener("click", doWeightSearch);
+  document.getElementById("wtExport").addEventListener("click", exportWt);
 });
