@@ -13,6 +13,7 @@ const LAYOUT = [
   { key: "Tipo",         type: "tier" },
   { key: "Price",        type: "edit" },
   { key: "Currency",     type: "edit" },
+  { key: "Peso unit. (kg)", type: "edit" },
   { key: "View",         type: "view" },
 ];
 const COL_COUNT = LAYOUT.length;
@@ -274,7 +275,9 @@ function offerToData(o) {
     "Stock / Qty.": o.stock != null ? String(o.stock) : "",
     "Tariff Cost": o.tariffCost || "", "Supplier Name": o.supplier || "",
     "Tier": o.tier, "Price": o.price != null ? String(o.price) : "",
-    "Currency": o.currency || "", "View": o.url || "",
+    "Currency": o.currency || "",
+    "Peso unit. (kg)": o.weightKg != null ? String(o.weightKg) : "",
+    "View": o.url || "",
   };
 }
 
