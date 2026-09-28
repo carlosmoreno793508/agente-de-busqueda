@@ -23,10 +23,6 @@ const SITES = {
       { name: "Trusted Parts",   country: "Global",   tier: "agregador",    url: "https://www.trustedparts.com/en/search/{PN}" },
       { name: "Digipart",        country: "Global",   tier: "agregador",    url: "https://www.digipart.com/search/{PN}" },
       { name: "NetComponents",   country: "Global",   tier: "agregador",    url: "https://www.netcomponents.com/en/Search?Keyword={PN}" },
-      { name: "Sourcengine",     country: "Global",   tier: "agregador",    url: "https://www.sourcengine.com/search?q={PN}" },
-      { name: "PartStack",       country: "Global",   tier: "agregador",    url: "https://partstack.com/search?q={PN}" },
-      { name: "Datasheets.com",  country: "Global",   tier: "agregador",    url: "https://www.datasheets.com/en/search?searchText={PN}" },
-      { name: "Z2Data",          country: "Global",   tier: "agregador",    url: "https://www.z2data.com/search?q={PN}" },
     ],
   },
 
@@ -41,8 +37,6 @@ const SITES = {
       { name: "TTI Inc.",            country: "EE. UU.",  tier: "franquiciado", url: "https://www.tti.com/content/ttiinc/en/search.html?q={PN}" },
       { name: "Master Electronics",  country: "EE. UU.",  tier: "franquiciado", url: "https://www.masterelectronics.com/en/search?searchTerm={PN}" },
       { name: "Symmetry Electronics",country: "EE. UU.",  tier: "franquiciado", url: "https://www.symmetryelectronics.com/search/?q={PN}" },
-      { name: "Quest Components",    country: "EE. UU.",  tier: "broker",       url: "https://www.questcomp.com/parts/search?searchTerm={PN}" },
-      { name: "SparkFun",            country: "EE. UU.",  tier: "franquiciado", url: "https://www.sparkfun.com/search/results?term={PN}" },
     ],
   },
 
@@ -74,6 +68,7 @@ const SITES = {
       { name: "WIN SOURCE",          country: "China",       tier: "broker",       url: "https://www.win-source.net/search/?keyword={PN}" },
       { name: "ICgoo",               country: "China",       tier: "broker",       url: "https://www.icgoo.net/search.html?keyword={PN}" },
       { name: "HQ Online (HQChip)",  country: "China",       tier: "broker",       url: "https://www.hqchip.com/app/search?keyword={PN}" },
+      { name: "Chipsmall",           country: "China/HK",    tier: "broker",       url: "https://www.chipsmall.com/search/{PN}.html" },
       { name: "Verical (Arrow)",     country: "Global",      tier: "broker",       url: "https://www.verical.com/search/{PN}" },
     ],
   },
